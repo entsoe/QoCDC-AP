@@ -607,18 +607,16 @@ l5igm:OpenNonRetainedSwitchVsTNSparql
         sh:message   "Opened non-retained cim:Switch {?switch} has both cim:Terminals connected to same cim:TopologicalNode {?tn1}.";
         sh:prefixes  cim:;
         sh:select    """
-			SELECT  DISTINCT $this ?switch ?tn1
-			WHERE {
-			 $this cim:Switch.open true.
-			 $this cim:Switch.retained false.
-			 ?term1 cim:Terminal.ConductingEquipment $this.
-			 ?term2 cim:Terminal.ConductingEquipment $this.
-			 BIND($this AS ?switch)
-			 ?term1 cim:Terminal.TopologicalNode|(cim:Terminal.ConnectivityNode/cim:ConnectivityNode.TopologicalNode) ?tn1.
-			 ?term2 cim:Terminal.TopologicalNode|(cim:Terminal.ConnectivityNode/cim:ConnectivityNode.TopologicalNode) ?tn2.
-
-				FILTER (?tn1=?tn2) .
-			}""" .
+          SELECT $this (SAMPLE($this) AS ?switch) ?tn1
+          WHERE {
+           $this $PATH true.
+           $this cim:Switch.retained false.
+           ?terminal cim:Terminal.ConductingEquipment $this ;
+                     (cim:Terminal.TopologicalNode|(cim:Terminal.ConnectivityNode/cim:ConnectivityNode.TopologicalNode)) ?tn1 .
+          }
+          GROUP BY $this ?tn1
+          HAVING (COUNT(DISTINCT ?terminal) > 1)
+          """ .
 
 l5igm:BaseVoltage-BaseVoltageNotInBoundarySparql
         rdf:type     sh:SPARQLConstraint;
