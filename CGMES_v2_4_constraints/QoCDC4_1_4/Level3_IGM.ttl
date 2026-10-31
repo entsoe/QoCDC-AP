@@ -92,7 +92,18 @@ l3igm:PowerTransformer
 l3igm:EquipmentTerminals
         rdf:type        sh:NodeShape;
         sh:property     l3igm:EquipmentTerminals-ps;
-        sh:targetClass  cim:ConnectivityNode .
+        sh:target [
+                rdf:type sh:SPARQLTarget ;
+                sh:prefixes cim: ;
+                sh:select """
+                        SELECT ?this
+                        WHERE {
+                                ?terminal cim:Terminal.ConductingEquipment ?this .
+                        }
+                        GROUP BY ?this
+                        HAVING (COUNT(?terminal) > 1)
+                """
+        ] .
 
 l3igm:BusbarSectionContainment
         rdf:type        sh:NodeShape;
@@ -218,7 +229,7 @@ l3igm:LimitKind.patl-numberOfLimitTypeActivePowerLimitSparql
 			WHERE {      
 #       $this ^cim:OperationalLimit.OperationalLimitSet/cim:OperationalLimit.OperationalLimitType/entsoe:OperationalLimitType.limitType entsoe:LimitTypeKind.patl .
 		$this entsoe:OperationalLimitType.limitType entsoe:LimitTypeKind.patl .
-        $this ^cim:OperationalLimit.OperationalLimitType ?ol .
+        ?ol cim:OperationalLimit.OperationalLimitType $this .
         ?ol  rdf:type ?typeol .
         ?ol cim:OperationalLimit.OperationalLimitSet ?value .
         FILTER (?typeol IN (cim:ActivePowerLimit)) .
@@ -265,7 +276,7 @@ l3igm:BusbarSection-controlModeSparql
         sh:select    """
 	      SELECT $this ?value 
         WHERE {
-        $this cim:RegulatingCondEq.RegulatingControl/cim:RegulatingControl.mode ?value .
+        $this ^cim:Terminal.ConductingEquipment/^cim:RegulatingControl.Terminal/cim:RegulatingControl.mode ?value .
         
         FILTER (?value!=cim:RegulatingControlModeKind.voltage).
         }""" .
@@ -280,20 +291,15 @@ l3igm:GeneratingUnit-GeneratingUnitSM
         sh:severity     sh:Violation;
         sh:sparql       l3igm:GeneratingUnit-GeneratingUnitSMSparql .
 
-l3igm:SubstationCountShape
-       a sh:NodeShape ;
-       sh:property   l3igm:Substation-count;
-       sh:targetNode  cim:SubstationCount.
-
 l3igm:Substation-count
-        rdf:type         sh:PropertyShape ;
+        rdf:type         sh:NodeShape ;
         sh:sparql        l3igm:Substation-countSparql ;
-        sh:path         rdf:type ;
         sh:description  "An IGM should normally have a site with one or multiple substations. Each substation has its own voltage levels. Therefore, the number of cim:VoltageLevel objects should be greater than the number of cim:Substation objects. The number of cim:VoltageLevel objects could equal to the number of cim:Substation objects if there are less than 30 cim:Substation objects." ;
         sh:name         "NumberOfSubstations" ;
         sh:group        l3igm:Level3-IGM ;
         sh:order        14 ;
-        sh:severity     sh:Warning .
+        sh:severity     sh:Warning;
+        sh:targetNode   md:FullModel .
 
 
 l3igm:Substation-countSparql
@@ -301,22 +307,11 @@ l3igm:Substation-countSparql
 		sh:message "The number of cim:Substation objects is outside defined limitations. Number of Substation-s: {?substations}. Number of VoltageLevel-s: {?voltagelevels}." ;
 		sh:prefixes cim: ;
 		sh:select """
-	      SELECT $this  ?substations ?voltagelevels
+	      SELECT $this ?substations ?voltagelevels
         WHERE {
-        {
-          SELECT $this (COUNT(?ss) AS ?substations)
-          WHERE {
-            ?ss rdf:type cim:Substation .
-          }
-          GROUP BY $this
-        }
-        {
-          SELECT $this (COUNT(?vl) AS ?voltagelevels)
-          WHERE {
-            ?vl rdf:type cim:VoltageLevel .
-          }
-          GROUP BY $this
-        }
+        # counted over the whole model; a sub-select without GROUP BY also returns 0 when there are no objects
+        { SELECT (COUNT(?ss) AS ?substations)   WHERE { ?ss rdf:type cim:Substation . } }
+        { SELECT (COUNT(?vl) AS ?voltagelevels) WHERE { ?vl rdf:type cim:VoltageLevel . } }
 
         FILTER ((?substations<30 && ?substations > ?voltagelevels) ||
                 (?substations>=30 && ?substations >= ?voltagelevels)).
@@ -327,41 +322,37 @@ l3igm:PowerTransformer-TooManyTapChangersSparql
         sh:message   "More than allowed cim:TapChanger objects at a cim:PowerTransformerEnd or the two cim:TapChanger objects are regulating.";
         sh:prefixes  cim:;
         sh:select    """
-            SELECT DISTINCT $this
+            SELECT $this
             WHERE {
                 {
                   SELECT $this (COUNT(?tc) AS ?tcCount)
                   WHERE {
-                    $this (^cim:RatioTapChanger.TransformerEnd)|(^cim:PhaseTapChanger.TransformerEnd) ?tc.
+                    ?tc (cim:RatioTapChanger.TransformerEnd|cim:PhaseTapChanger.TransformerEnd) $this.
                   }
                   GROUP BY $this
                 }
-                
-                # Get the type of tap changers
-                $this (^cim:RatioTapChanger.TransformerEnd)|(^cim:PhaseTapChanger.TransformerEnd) ?tc.
-                ?tc rdf:type ?tctype .
-                
-                # Check if both are ratio tap changers (not allowed)
-                BIND(EXISTS{$this ^cim:RatioTapChanger.TransformerEnd ?rtc1.
-                            $this ^cim:RatioTapChanger.TransformerEnd ?rtc2.
-                            FILTER(?rtc1 != ?rtc2)} AS ?twoRatio)
-                
-                # Check if both are phase tap changers (not allowed)
-                BIND(EXISTS{$this ^cim:PhaseTapChanger.TransformerEnd ?ptc1.
-                            $this ^cim:PhaseTapChanger.TransformerEnd ?ptc2.
-                            FILTER(?ptc1 != ?ptc2)} AS ?twoPhase)
-                
-                # Check if both tap changers are regulating (when there are exactly 2)
-                BIND(EXISTS{
-                    $this ^cim:RatioTapChanger.TransformerEnd ?tcc1.
-                    $this ^cim:PhaseTapChanger.TransformerEnd ?tcc2.
-                    ?tcc1 cim:TapChanger.TapChangerControl/cim:RegulatingControl.enabled true.
-                    ?tcc2 cim:TapChanger.TapChangerControl/cim:RegulatingControl.enabled true.
-                    ?tcc1 cim:TapChanger.controlEnabled true.
-                    ?tcc2 cim:TapChanger.controlEnabled true.
-                } AS ?bothRegulating)
-                
-                FILTER (?tcCount > 2 || ?twoRatio || ?twoPhase || (?tcCount = 2 && ?bothRegulating))
+
+                FILTER (
+                    ?tcCount > 2
+                    || EXISTS {
+                        ?rtc1 cim:RatioTapChanger.TransformerEnd $this.
+                        ?rtc2 cim:RatioTapChanger.TransformerEnd $this.
+                        FILTER(?rtc1 != ?rtc2)
+                    }
+                    || EXISTS {
+                        ?ptc1 cim:PhaseTapChanger.TransformerEnd $this.
+                        ?ptc2 cim:PhaseTapChanger.TransformerEnd $this.
+                        FILTER(?ptc1 != ?ptc2)
+                    }
+                    || (?tcCount = 2 && EXISTS {
+                        ?tcc1 cim:RatioTapChanger.TransformerEnd $this.
+                        ?tcc2 cim:PhaseTapChanger.TransformerEnd $this.
+                        ?tcc1 cim:TapChanger.TapChangerControl/cim:RegulatingControl.enabled true.
+                        ?tcc2 cim:TapChanger.TapChangerControl/cim:RegulatingControl.enabled true.
+                        ?tcc1 cim:TapChanger.controlEnabled true.
+                        ?tcc2 cim:TapChanger.controlEnabled true.
+                    })
+                )
             }
             """ .
 
@@ -395,7 +386,7 @@ l3igm:LimitKind.patl-numberOfLimitTypeSparql
 			WHERE {      
 #       $this ^cim:OperationalLimit.OperationalLimitSet/cim:OperationalLimit.OperationalLimitType/entsoe:OperationalLimitType.limitType entsoe:LimitTypeKind.patl .
 		$this entsoe:OperationalLimitType.limitType entsoe:LimitTypeKind.patl .
-        $this ^cim:OperationalLimit.OperationalLimitType ?ol .
+        ?ol cim:OperationalLimit.OperationalLimitType $this .
         ?ol  rdf:type ?typeol .
         ?ol cim:OperationalLimit.OperationalLimitSet ?value .
         FILTER (?typeol IN (cim:ApparentPowerLimit , cim:CurrentLimit)) .
@@ -409,44 +400,37 @@ l3igm:SMRatedSunrealisticSparql
         sh:message   "Unrealistic cim:RotatingMachine.ratedS is specified for a non-aggregated synchronous machine.";
         sh:prefixes  cim:;
         sh:select    """
-	    SELECT $this ?value
-      WHERE {      
-        $this $PATH ?rateds.
-		$this cim:RotatingMachine.GeneratingUnit/cim:GeneratingUnit.minOperatingP ?minp.
-        $this cim:RotatingMachine.GeneratingUnit/cim:GeneratingUnit.maxOperatingP ?maxp.
-		$this cim:SynchronousMachine.minQ ?minq.
-        $this cim:SynchronousMachine.maxQ ?maxq.
-		
-        BIND(EXISTS{$this cim:SynchronousMachine.InitialReactiveCapabilityCurve ?rcca} AS ?hasrcc).
-        
-        {
-        SELECT $this (MAX(ABS(?xvalue)) AS ?maxxvalue)  (MAX(ABS(?y1value)) AS ?maxy1value) (MAX(ABS(?y2value)) AS ?maxy2value) 
-          WHERE {
-            $this cim:SynchronousMachine.InitialReactiveCapabilityCurve/^cim:CurveData.Curve ?curvedata .
-            ?curvedata rdf:type ?cdtype .
-            ?curvedata cim:CurveData.xvalue ?xvalue .
-			?curvedata cim:CurveData.y1value ?y1value .
-			?curvedata cim:CurveData.y2value ?y2value .
-            FILTER (?cdtype=cim:CurveData ) .
-          }
-          GROUP BY $this ?cdtype
+      SELECT $this ?value
+      WHERE {
+        $this $PATH ?value .
+        # non-aggregated only: skip when the SM is aggregated and its GeneratingUnit (if any) does not say otherwise
+        FILTER NOT EXISTS {
+          $this cim:Equipment.aggregate true .
+          FILTER NOT EXISTS { $this cim:RotatingMachine.GeneratingUnit/cim:Equipment.aggregate false }
         }
-		
-		{
-        SELECT $this (MAX(ABS(?pq)) AS ?maxpq)  
-          WHERE {
-            
-			$this (cim:RotatingMachine.GeneratingUnit/cim:GeneratingUnit.minOperatingP)|(cim:RotatingMachine.GeneratingUnit/cim:GeneratingUnit.maxOperatingP)|cim:SynchronousMachine.minQ|cim:SynchronousMachine.maxQ ?pq.
-			
-			$this rdf:type ?type .
-            FILTER (?type=cim:SynchronousMachine ) .
-          }
-          GROUP BY $this ?type
+        BIND (EXISTS { $this cim:SynchronousMachine.InitialReactiveCapabilityCurve ?rcc } AS ?hasrcc)
+        # largest absolute values without aggregates (no GROUP BY over zero rows): limits, curve x, y1, y2
+        OPTIONAL {
+          $this (cim:SynchronousMachine.minQ|cim:SynchronousMachine.maxQ|(cim:RotatingMachine.GeneratingUnit/cim:GeneratingUnit.minOperatingP)|(cim:RotatingMachine.GeneratingUnit/cim:GeneratingUnit.maxOperatingP)) ?pq .
+          FILTER NOT EXISTS { $this (cim:SynchronousMachine.minQ|cim:SynchronousMachine.maxQ|(cim:RotatingMachine.GeneratingUnit/cim:GeneratingUnit.minOperatingP)|(cim:RotatingMachine.GeneratingUnit/cim:GeneratingUnit.maxOperatingP)) ?pqo . FILTER (ABS(?pqo) > ABS(?pq)) }
         }
-
-
-        FILTER ((?hasrcc=true && ((?rateds>=?maxxvalue*10 && ?maxxvalue!=0) || (?rateds>=?maxy1value*10 && ?maxy1value!=0) || (?rateds>=?maxy2value*10 && ?maxy2value!=0))) || (?hasrcc=false && (?rateds>?maxpq*10 && ?maxpq!=0))) .
-        } """ .
+        OPTIONAL {
+          $this cim:SynchronousMachine.InitialReactiveCapabilityCurve/^cim:CurveData.Curve/cim:CurveData.xvalue ?mx .
+          FILTER NOT EXISTS { $this cim:SynchronousMachine.InitialReactiveCapabilityCurve/^cim:CurveData.Curve/cim:CurveData.xvalue ?mxo . FILTER (ABS(?mxo) > ABS(?mx)) }
+        }
+        OPTIONAL {
+          $this cim:SynchronousMachine.InitialReactiveCapabilityCurve/^cim:CurveData.Curve/cim:CurveData.y1value ?my1 .
+          FILTER NOT EXISTS { $this cim:SynchronousMachine.InitialReactiveCapabilityCurve/^cim:CurveData.Curve/cim:CurveData.y1value ?my1o . FILTER (ABS(?my1o) > ABS(?my1)) }
+        }
+        OPTIONAL {
+          $this cim:SynchronousMachine.InitialReactiveCapabilityCurve/^cim:CurveData.Curve/cim:CurveData.y2value ?my2 .
+          FILTER NOT EXISTS { $this cim:SynchronousMachine.InitialReactiveCapabilityCurve/^cim:CurveData.Curve/cim:CurveData.y2value ?my2o . FILTER (ABS(?my2o) > ABS(?my2)) }
+        }
+        FILTER ((?hasrcc && ((bound(?mx) && ?mx != 0 && ?value >= 10e0*ABS(?mx)) ||
+                             (bound(?my1) && ?my1 != 0 && ?value >= 10e0*ABS(?my1)) ||
+                             (bound(?my2) && ?my2 != 0 && ?value >= 10e0*ABS(?my2)))) ||
+                (!?hasrcc && bound(?pq) && ?pq != 0 && ?value >= 10e0*ABS(?pq))) .
+      } """ .
 
 l3igm:EnergyAreaMissing
         rdf:type        sh:NodeShape;
@@ -503,11 +487,13 @@ l3igm:PowerTransformerEnd.x-PowerTransformerEndXSparql
           ?end1 cim:PowerTransformerEnd.x ?x1 .
           ?end2 cim:TransformerEnd.endNumber 2.
           ?end2 cim:PowerTransformerEnd.x ?x2 .
-          #?end3 cim:TransformerEnd.endNumber 3 .
           ?end3 cim:PowerTransformerEnd.x ?x3 .
-          BIND(EXISTS{$this ^cim:PowerTransformerEnd.PowerTransformer/cim:TransformerEnd.endNumber 3 } AS ?threewin) .
 
-          FILTER ((!(?x1>0.01 && ?x2=0) && ?threewin=false )|| (?threewin=true && !(ABS(?x1)>0.01 && ABS(?x2)>0.01 && ABS(?x3)>0.01)) ).
+          FILTER (
+            (!(?x1>=0.01 && ?x2=0) && NOT EXISTS { $this ^cim:PowerTransformerEnd.PowerTransformer/cim:TransformerEnd.endNumber 3 })
+            ||
+            (EXISTS { $this ^cim:PowerTransformerEnd.PowerTransformer/cim:TransformerEnd.endNumber 3 } && !(ABS(?x1)>=0.01 && ABS(?x2)>=0.01 && ABS(?x3)>=0.01))
+          ).
         } """ .
 
 l3igm:RegulatingControl
@@ -572,9 +558,8 @@ l3igm:OperationalLimitType.acceptableDuration-usageSparql
 			SELECT  $this
 			WHERE {
 		$this entsoe:OperationalLimitType.limitType ?type .
-        BIND(EXISTS{$this $PATH ?value } AS ?hasvalue).
-        
-        FILTER (?hasvalue=false && ?type IN (entsoe:LimitTypeKind.tatl, entsoe:LimitTypeKind.tct ) ) .
+        FILTER NOT EXISTS { $this $PATH ?value }
+        FILTER(?type IN (entsoe:LimitTypeKind.tatl, entsoe:LimitTypeKind.tct ) ) .
 			}""" .
 
 l3igm:GenContainment  rdf:type  sh:NodeShape;
@@ -781,7 +766,7 @@ l3igm:LinearNonLinearShuntCompensator
 
 l3igm:Terminal-TerminalSeqNum
         rdf:type        sh:PropertyShape;
-        sh:description  "Every instance of cim:Terminal must have a cim:Terminal.sequenceNumber\tif it belongs to an cim:EquivalentBranch or an cim:ACLineSegment with cim:MutualCoupling.";
+        sh:description  "Every instance of cim:Terminal must have a cim:Terminal.sequenceNumber if it belongs to an cim:EquivalentBranch or an cim:ACLineSegment with cim:MutualCoupling.";
         sh:group        l3igm:Level3-IGM;
         sh:name         "TerminalSeqNum";
         sh:order        34;
@@ -846,7 +831,7 @@ l3igm:ConductingEquipment-CEBaseVoltageSparql
 		#BIND(EXISTS{$this ^cim:Terminal.ConductingEquipment/cim:Terminal.TopologicalNode/cim:TopologicalNode.boundaryPoint true } AS ?isBP).
 		#BIND(EXISTS{$this rdf:type cim:Junction } AS ?isJunction).
         #FILTER (?isJunction=true && ?isBP=true && ((!bound(?value) && !bound(?cebv)) || (bound(?cebv) && bound(?value) && ?value!=?cebv))) .
-        FILTER (bound(?cebv) && bound(?value) && ?value!=?cebv) .
+        FILTER ((!bound(?value) && NOT EXISTS { $this cim:Equipment.EquipmentContainer/rdf:type ?ctype . FILTER (?ctype IN (cim:VoltageLevel, cim:Bay)) }) || (bound(?cebv) && bound(?value) && ?value!=?cebv)) .
 			}""" .
 
 l3igm:LimitKind.patl-numberOfLimitType
@@ -875,8 +860,8 @@ l3igm:RegulatingControl-TargetDeadbandOutOfRangeSparql
         $this cim:RegulatingControl.discrete true .
 		$this cim:RegulatingControl.enabled true .
         $this cim:RegulatingControl.mode cim:RegulatingControlModeKind.voltage .
-        OPTIONAL {$this $PATH ?value}.
-        FILTER (bound(?value) && (?value/2)>abs(?targetvalue) ) .        
+        $this $PATH ?value.
+        FILTER ((?value/2)>abs(?targetvalue) ) .
 			}""" .
 
 l3igm:ReactiveCapabilityCurve-reactiveCountPSparql
@@ -887,12 +872,12 @@ l3igm:ReactiveCapabilityCurve-reactiveCountPSparql
 	    SELECT $this ?curvedatas  ?value
       WHERE {
         {
-        SELECT $this (COUNT(?typecd) AS ?curvedatas) (MAX(?xvalue) AS ?maxxvalue) (MIN(?xvalue) AS ?minxvalue)
+        SELECT $this (COUNT(DISTINCT ?cd) AS ?curvedatas) (MAX(?xvalue) AS ?maxxvalue) (MIN(?xvalue) AS ?minxvalue)
         WHERE {
-        $this  ^cim:CurveData.Curve/rdf:type ?typecd .
-        $this  ^cim:CurveData.Curve/cim:CurveData.xvalue ?xvalue .
+        ?cd cim:CurveData.Curve $this .
+        ?cd cim:CurveData.xvalue ?xvalue .
         }
-        GROUP BY $this ?typecd 
+        GROUP BY $this
         }
         
         $this ^cim:SynchronousMachine.InitialReactiveCapabilityCurve/cim:SynchronousMachine.type ?type .
@@ -900,7 +885,7 @@ l3igm:ReactiveCapabilityCurve-reactiveCountPSparql
         $this ^cim:CurveData.Curve/cim:CurveData.xvalue ?xvalue1 .
         BIND("" as ?value).
 
-        FILTER (((?type=cim:SynchronousMachineKind.condenser ) ||
+        FILTER (((?type=cim:SynchronousMachineKind.condenser && (?curvedatas!=1 || ?xvalue1!=0)) ||
         ((?type=cim:SynchronousMachineKind.generator || ?type=cim:SynchronousMachineKind.generatorOrCondenser) && (?curvedatas<2 || ?xvalue1<0)) ||
         ((?type=cim:SynchronousMachineKind.motor || ?type=cim:SynchronousMachineKind.motorOrCondenser) && (?curvedatas<2 || ?xvalue1>0)) ||
         ((?type=cim:SynchronousMachineKind.generatorOrMotor || ?type=cim:SynchronousMachineKind.generatorOrCondenserOrMotor) && (?curvedatas<3 || !(?maxxvalue>=0 && ?minxvalue<=0))))
@@ -922,8 +907,7 @@ l3igm:SynchronousMachine.type-condenserSparql
         WHERE {
         $this $PATH ?value .
         $this $PATH cim:SynchronousMachineKind.condenser  .
-        OPTIONAL {$this cim:RotatingMachine.GeneratingUnit ?genunit } .
-        FILTER (bound(?genunit) ).
+        $this cim:RotatingMachine.GeneratingUnit ?genunit .
         }""" .
 
 l3igm:SynchronousMachine-controlMode
@@ -946,38 +930,18 @@ l3igm:GeneratingUnit-typeDependency
         sh:severity     sh:Warning;
         sh:sparql       l3igm:GeneratingUnit-typeDependencySparql .
 
-l3igm:Terminal-EXCH8ConnectivityNodeSparql
-        rdf:type     sh:SPARQLConstraint;
-        sh:message   "The association end cim:Terminal.ConnectivityNode is not provided for a  model that contains EQ Operation profile.";
-        sh:prefixes  cim:;
-        sh:select    """
-			SELECT  $this ?value
-			WHERE {      
-        BIND (EXISTS {?s md:Model.profile "http://entsoe.eu/CIM/EquipmentOperation/3/1"} AS ?opmodel) .
-        BIND (EXISTS {$this $PATH ?value} AS ?hasassoc) .
-        
-        FILTER (?opmodel=true && ?hasassoc=false) .
-			}""" .
-
-
-
-
 l3igm:EquipmentTerminalsSparql
-
     rdf:type    sh:SPARQLConstraint ;
     sh:message  "Multiterminal equipment which has two or more terminals connected to the same cim:ConnectivityNode." ;
     sh:prefixes cim: ;
     sh:select """
-        SELECT DISTINCT $this
+        SELECT $this
         WHERE {
-          # Two different terminals connected to the same ConnectivityNode ($this)
-          ?t1 cim:Terminal.ConnectivityNode $this .
-          ?t2 cim:Terminal.ConnectivityNode $this .
-          FILTER(?t1 != ?t2) .
-          # ...and both terminals belong to the same ConductingEquipment
-          ?t1 cim:Terminal.ConductingEquipment ?ce .
-          ?t2 cim:Terminal.ConductingEquipment ?ce .
+          ?terminal cim:Terminal.ConductingEquipment $this .
+          ?terminal cim:Terminal.ConnectivityNode ?connectivityNode .
         }
+        GROUP BY $this ?connectivityNode
+        HAVING (COUNT(?terminal) > 1)
     """ .
 
  
@@ -1039,10 +1003,8 @@ l3igm:SubLoadArea-SubLoadAreaMissingSparql
         sh:select    """
 	      SELECT $this  
         WHERE {
-          BIND(EXISTS{$this cim:LoadGroup.SubLoadArea ?group } AS ?sagr) .
-		  BIND(EXISTS{?s md:Model.profile "http://entsoe.eu/CIM/EquipmentOperation/3/1" } AS ?opprof) .
-          
-          FILTER ( ?sagr=false &&  ?opprof=true).
+          FILTER NOT EXISTS { $this cim:LoadGroup.SubLoadArea ?group }
+		  FILTER EXISTS { ?s md:Model.profile "http://entsoe.eu/CIM/EquipmentOperation/3/1" }
         } """ .
 
 l3igm:PowerTransformer-containment
@@ -1093,19 +1055,27 @@ l3igm:PowerTransformerEnd.r-PowerTransformerEndRSparql
         WHERE {
           ?end1 cim:PowerTransformerEnd.PowerTransformer $this .
           ?end2 cim:PowerTransformerEnd.PowerTransformer $this .
-          OPTIONAL {?end3 cim:PowerTransformerEnd.PowerTransformer $this .
-		  ?end3 cim:TransformerEnd.endNumber 3 .
-          ?end3 cim:PowerTransformerEnd.r ?r3 .
-		  }.
-		  
           ?end1 cim:TransformerEnd.endNumber 1.
           ?end1 cim:PowerTransformerEnd.r ?r1 .
           ?end2 cim:TransformerEnd.endNumber 2.
           ?end2 cim:PowerTransformerEnd.r ?r2 .
-          
-          BIND(EXISTS{$this ^cim:PowerTransformerEnd.PowerTransformer/cim:TransformerEnd.endNumber 3 } AS ?threewin) .
-          
-          FILTER (((?r1<0.01 || ?r2!=0) && ?threewin=false )|| (?threewin=true && (ABS(?r1)<0.01 || ABS(?r2)<0.01 || ABS(?r3)<0.01)) ).
+
+          FILTER (
+            (NOT EXISTS { ?threeWindingEnd cim:PowerTransformerEnd.PowerTransformer $this ; cim:TransformerEnd.endNumber 3 } && (?r1<0.01 || ?r2!=0))
+            || (
+              EXISTS { ?threeWindingEnd cim:PowerTransformerEnd.PowerTransformer $this ; cim:TransformerEnd.endNumber 3 }
+              && (
+                ABS(?r1)<0.01
+                || ABS(?r2)<0.01
+                || EXISTS {
+                  ?threeWindingEnd cim:PowerTransformerEnd.PowerTransformer $this ;
+                                  cim:TransformerEnd.endNumber 3 ;
+                                  cim:PowerTransformerEnd.r ?r3 .
+                  FILTER (ABS(?r3)<0.01)
+                }
+              )
+            )
+          ).
         } """ .
 
 l3igm:MCFirstSecond  rdf:type  sh:NodeShape;
@@ -1158,7 +1128,7 @@ l3igm:OperationalLimitValue-currentLimit
         sh:description   "For every instance of cim:VoltageLimit, the value of cim:VoltageLimit.value must be > 0. For every instance of cim:CurrentLimit, the value of cim:CurrentLimit.value must be > 0. For every instance of cim:ActivePowerLimit, the value of cim:ActivePowerLimit.value must be > 0. For every instance of cim:ApparentPowerLimit, the value of cim:ApparentPowerLimit.value must be > 0.";
         sh:group         l3igm:Level3-IGM;
         sh:message       "A OperationalLimit value is not positive.";
-        sh:minInclusive  "0.0"^^xsd:float;
+        sh:minExclusive  "0.0"^^xsd:float;
         sh:name          "OperationalLimitValue";
         sh:order         47;
         sh:path          cim:CurrentLimit.value;
@@ -1183,9 +1153,9 @@ l3igm:SynchronousMachine-reactiveLimitsSparql
       WHERE {
         OPTIONAL {$this cim:SynchronousMachine.minQ ?minq } .
         OPTIONAL {$this cim:SynchronousMachine.maxQ ?maxq } .
-        BIND(EXISTS{$this cim:SynchronousMachine.InitialReactiveCapabilityCurve ?rcca} AS ?hasrcc).
+        FILTER NOT EXISTS { $this cim:SynchronousMachine.InitialReactiveCapabilityCurve ?rcca }
 
-		FILTER ((?hasrcc=false && !(bound(?minq) && bound(?maxq))) ) .
+		FILTER(!(bound(?minq) && bound(?maxq))) .
         } """ .
 
 l3igm:ConnectivityNode.fromEndNameTso-CNFromEndNameTsoLength
@@ -1223,7 +1193,7 @@ l3igm:CurveData-equationY2Sparql
         $this cim:CurveData.xvalue ?xvalue .
         $this cim:CurveData.y2value ?y2value.
         ?value ^cim:SynchronousMachine.InitialReactiveCapabilityCurve/cim:RotatingMachine.ratedS ?rateds .
-        FILTER ((?xvalue*?xvalue+?y2value*?y2value)>?rateds*1.0005*?rateds*1.0005) .
+        FILTER ((?xvalue*?xvalue+?y2value*?y2value)>?rateds*1.0005e0*?rateds*1.0005e0) .
         } """ .
 
 l3igm:MeasType-Values
@@ -1324,9 +1294,9 @@ l3igm:TopologicalNode-TNnotInIslandSparql
 	      SELECT $this
         WHERE {
           $this ^cim:SvVoltage.TopologicalNode/cim:SvVoltage.v ?svvol.
-          BIND(EXISTS{$this ^cim:TopologicalIsland.TopologicalNodes ?topisl } AS ?hasTI) .
+          FILTER NOT EXISTS { ?topisl cim:TopologicalIsland.TopologicalNodes $this }
 
-        FILTER (?svvol !=0 && ?hasTI=false).
+        FILTER(?svvol !=0).
         } """ .
 
 l3igm:OperationalLimitType.acceptableDuration-usage
@@ -1359,7 +1329,7 @@ l3igm:StaticVarCompensator
 
 l3igm:PowerTransformer-operationalLimitSetPATLSparql
         rdf:type     sh:SPARQLConstraint;
-        sh:message   "A non-aggregated cim:PowerTrainsformer which has not a cim:OperationalLimitSet with at least one cim:OperationalLimit of type entsoe:LimitTypeKind.patl associated to any of its cim:Terminal-s.";
+        sh:message   "A non-aggregated cim:PowerTransformer which has not a cim:OperationalLimitSet with at least one cim:OperationalLimit of type entsoe:LimitTypeKind.patl associated to any of its cim:Terminal-s.";
         sh:prefixes  cim:;
         sh:select    """
 	      SELECT $this  
@@ -1384,7 +1354,7 @@ l3igm:CurveData-equationY1Sparql
         $this cim:CurveData.xvalue ?xvalue .
         $this cim:CurveData.y1value ?y1value  .
         ?value ^cim:SynchronousMachine.InitialReactiveCapabilityCurve/cim:RotatingMachine.ratedS ?rateds .
-        FILTER ( (?xvalue*?xvalue+?y1value*?y1value)>?rateds*1.0005*?rateds*1.0005) .
+        FILTER ( (?xvalue*?xvalue+?y1value*?y1value)>?rateds*1.0005e0*?rateds*1.0005e0) .
         } """ .
 
 l3igm:PhaseTapChangerAsymmetrical.windingConnectionAngle-valueRange
@@ -1494,7 +1464,7 @@ l3igm:OperationalLimitValue-voltageLimit
         sh:description   "For every instance of cim:VoltageLimit, the value of cim:VoltageLimit.value must be > 0. For every instance of cim:CurrentLimit, the value of cim:CurrentLimit.value must be > 0. For every instance of cim:ActivePowerLimit, the value of cim:ActivePowerLimit.value must be > 0. For every instance of cim:ApparentPowerLimit, the value of cim:ApparentPowerLimit.value must be > 0.";
         sh:group         l3igm:Level3-IGM;
         sh:message       "A OperationalLimit value is not positive.";
-        sh:minInclusive  "0.0"^^xsd:float;
+        sh:minExclusive  "0.0"^^xsd:float;
         sh:name          "OperationalLimitValue";
         sh:order         46;
         sh:path          cim:VoltageLimit.value;
@@ -1505,7 +1475,7 @@ l3igm:OperationalLimitValue-apparentPowerLimit
         sh:description   "For every instance of cim:VoltageLimit, the value of cim:VoltageLimit.value must be > 0. For every instance of cim:CurrentLimit, the value of cim:CurrentLimit.value must be > 0. For every instance of cim:ActivePowerLimit, the value of cim:ActivePowerLimit.value must be > 0. For every instance of cim:ApparentPowerLimit, the value of cim:ApparentPowerLimit.value must be > 0.";
         sh:group         l3igm:Level3-IGM;
         sh:message       "A OperationalLimit value is not positive.";
-        sh:minInclusive  "0.0"^^xsd:float;
+        sh:minExclusive  "0.0"^^xsd:float;
         sh:name          "OperationalLimitValue";
         sh:order         49;
         sh:path          cim:ApparentPowerLimit.value;
@@ -1531,11 +1501,11 @@ l3igm:GeneratingUnit-GeneratingUnitSMSparql
         sh:select    """
 	      SELECT $this   
         WHERE {
-          $this ^cim:RotatingMachine.GeneratingUnit ?sm .
+          ?sm cim:RotatingMachine.GeneratingUnit $this .
           ?sm rdf:type ?smtype .
         }
-        GROUP BY $this ?smtype
-        HAVING(COUNT(?smtype)>1)
+        GROUP BY $this
+        HAVING(COUNT(DISTINCT ?sm)>1)
         """ .
 
 l3igm:EquipmentTerminals-ps
@@ -1566,10 +1536,8 @@ l3igm:ControlArea-EnergyAreaMissingSparql
         sh:select    """
 	      SELECT $this  
         WHERE {
-          BIND(EXISTS{$this cim:ControlArea.EnergyArea ?group } AS ?sagr) .
-		  BIND(EXISTS{?s md:Model.profile "http://entsoe.eu/CIM/EquipmentOperation/3/1" } AS ?opprof) .
-          
-          FILTER ( ?sagr=false &&  ?opprof=true).
+          FILTER NOT EXISTS { $this cim:ControlArea.EnergyArea ?group }
+		  FILTER EXISTS { ?s md:Model.profile "http://entsoe.eu/CIM/EquipmentOperation/3/1" }
         } """ .
 
 l3igm:PowerTransformerEnd-terminalConsistencySparql
@@ -1658,19 +1626,17 @@ l3igm:CurveData.xvalue-valueSparql
       WHERE {      
         $this cim:RotatingMachine.GeneratingUnit/cim:GeneratingUnit.minOperatingP ?minp.
         $this cim:RotatingMachine.GeneratingUnit/cim:GeneratingUnit.maxOperatingP ?maxp.
-        BIND(EXISTS{$this cim:SynchronousMachine.InitialReactiveCapabilityCurve ?rcca} AS ?hasrcc).
-        
         {
         SELECT $this (MAX(?xvalue) AS ?maxxvalue)  (MIN(?xvalue) AS ?minxvalue)
           WHERE {
-            $this cim:SynchronousMachine.InitialReactiveCapabilityCurve/^cim:CurveData.Curve ?curvedata .
-            ?curvedata rdf:type ?cdtype .
+            $this cim:SynchronousMachine.InitialReactiveCapabilityCurve ?rcc .
+            ?curvedata cim:CurveData.Curve ?rcc .
+            ?curvedata rdf:type cim:CurveData .
             ?curvedata cim:CurveData.xvalue ?xvalue .
-            FILTER (?cdtype=cim:CurveData ) .
           }
-          GROUP BY $this ?cdtype
+          GROUP BY $this
         }
-        FILTER (?hasrcc=true && !(?maxp>=?maxxvalue && ?minp<=?minxvalue)) .
+        FILTER (!(?maxp>=?maxxvalue && ?minp<=?minxvalue)) .
         } """ .
 
 l3igm:ACLineSegment-operationalLimitSetPATLSparql
@@ -1701,7 +1667,8 @@ l3igm:ACDCTerminal.sequenceNumber-numbering
         sh:order        35;
         sh:path         rdf:type;
         sh:severity     sh:Violation;
-        sh:sparql       l3igm:ACDCTerminal.sequenceNumber-numberingSparql .
+        sh:maxCount     0;
+        sh:message   "Invalid sequenceNumber for a cim:Terminal." .
 
 l3igm:BusbarSection-controlMode
         rdf:type        sh:PropertyShape;
@@ -1764,7 +1731,7 @@ l3igm:RegulatingControl-InfiniteVoltageSourcesEISparql
 	      SELECT $this ?value
         WHERE {
           $this cim:EquivalentInjection.regulationStatus true.
-          $this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.q ?value.
+          { $this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.q ?value. } UNION { $this cim:EquivalentInjection.minQ|cim:EquivalentInjection.maxQ ?value. }
 
           #?ce cim:EquivalentInjection.maxQ|cim:SynchronousMachine.maxQ|cim:ExternalNetworkInjection.maxQ ?maxQ.
           #?ce cim:EquivalentInjection.minQ|cim:SynchronousMachine.minQ|cim:ExternalNetworkInjection.minQ ?minQ.
@@ -1889,8 +1856,8 @@ l3igm:RegulatingControl-InfiniteVoltageSourcesSparql
         sh:select    """
 	      SELECT $this ?value
         WHERE {
-          $this ^cim:Terminal.ConductingEquipment/^cim:RegulatingControl.Terminal/cim:RegulatingControl.enabled true.
-          $this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.q ?value.
+          $this (cim:RegulatingCondEq.RegulatingControl|(^cim:Terminal.ConductingEquipment/^cim:RegulatingControl.Terminal))/cim:RegulatingControl.enabled true.
+          { $this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.q ?value. } UNION { $this cim:SynchronousMachine.minQ|cim:SynchronousMachine.maxQ|cim:ExternalNetworkInjection.minQ|cim:ExternalNetworkInjection.maxQ ?value. } UNION { $this cim:SynchronousMachine.InitialReactiveCapabilityCurve/^cim:CurveData.Curve/(cim:CurveData.y1value|cim:CurveData.y2value) ?value. }
 
           #$this cim:RegulatingControl.enabled true.
           #$this cim:RegulatingControl.Terminal/cim:Terminal.ConductingEquipment ?ce.
@@ -2013,8 +1980,8 @@ l3igm:GeneratingUnit.nominalP-valueRangePairSparql
 			SELECT  $this ?value
 			WHERE {
         $this $PATH ?value .
-        $this ^cim:RotatingMachine.GeneratingUnit/cim:RotatingMachine.ratedS ?rateds .
-        FILTER (?value<=0 || ?value>?rateds) .
+        OPTIONAL { $this ^cim:RotatingMachine.GeneratingUnit/cim:RotatingMachine.ratedS ?rateds . }
+        FILTER (?value<=0 || (bound(?rateds) && ?value>?rateds)) .
 			}""" .
 
 l3igm:CATieFlow-requiredTieFlow
@@ -2069,14 +2036,14 @@ l3igm:LoadResponseCharacteristic-LCRCoefficientParametersSparql
 			WHERE {
         $this $PATH false .
 
-        OPTIONAL {$this cim:LoadResponseCharacteristic.pConstantCurrent ?pcc }.
-        OPTIONAL {$this cim:LoadResponseCharacteristic.pConstantImpedance ?pci }.
-        OPTIONAL {$this cim:LoadResponseCharacteristic.pConstantPower ?pcp }.
-        OPTIONAL {$this cim:LoadResponseCharacteristic.qConstantCurrent ?qcc }.
-        OPTIONAL {$this cim:LoadResponseCharacteristic.qConstantImpedance ?qci }.
-        OPTIONAL {$this cim:LoadResponseCharacteristic.qConstantPower ?qcp }.
+        $this cim:LoadResponseCharacteristic.pConstantCurrent ?pcc .
+        $this cim:LoadResponseCharacteristic.pConstantImpedance ?pci .
+        $this cim:LoadResponseCharacteristic.pConstantPower ?pcp .
+        $this cim:LoadResponseCharacteristic.qConstantCurrent ?qcc .
+        $this cim:LoadResponseCharacteristic.qConstantImpedance ?qci .
+        $this cim:LoadResponseCharacteristic.qConstantPower ?qcp .
 
-        FILTER (bound(?pcc) && bound(?pci) && bound(?pcp) && bound(?qcc) && bound(?qci) && bound(?qcp) && (?pcc+?pci+?pcp!=1 || ?qcc+?qci+?qcp!=1) ) .
+        FILTER (?pcc+?pci+?pcp!=1 || ?qcc+?qci+?qcp!=1) .
 			}""" .
 
 l3igm:ReactiveCapabilityCurve-xvalueSparql
@@ -2128,7 +2095,20 @@ l3igm:MutualCoupling-terminalsAssignmentSparql
 l3igm:TerminalSeqNumOrder
         rdf:type        sh:NodeShape;
         sh:property     l3igm:ACDCTerminal.sequenceNumber-numbering;
-        sh:targetClass  cim:DisconnectingCircuitBreaker , cim:DCLineSegment , cim:PetersenCoil , cim:PowerElectronicsConnection , cim:EquivalentInjection , cim:CsConverter , cim:EnergyConsumer , cim:Switch , cim:Disconnector , cim:EquivalentShunt , cim:GroundDisconnector , cim:PowerTransformer , cim:Fuse , cim:EnergySource , cim:DCSwitch , cim:SeriesCompensator , cim:DCGround , cim:NonlinearShuntCompensator , cim:NonConformLoad , cim:DCDisconnector , cim:DCShunt , cim:ACLineSegment , cim:AsynchronousMachine , cim:Jumper , cim:Ground , cim:StationSupply , cim:Junction , cim:SynchronousMachine , cim:EquivalentBranch , cim:GroundingImpedance , cim:DCBusbar , cim:VsConverter , cim:StaticVarCompensator , cim:BusbarSection , cim:Breaker , cim:LinearShuntCompensator , cim:Clamp , cim:DCChopper , cim:ConformLoad , cim:DCBreaker , cim:Cut , cim:LoadBreakSwitch , cim:ExternalNetworkInjection , cim:DCSeriesDevice .
+        sh:target [
+                rdf:type sh:SPARQLTarget ;
+                sh:prefixes cim: ;
+                sh:select """
+                        # Selects exactly the equipment whose terminal numbering is invalid (requires SHACL-AF; pySHACL: advanced=True)
+                        SELECT ?this
+                        WHERE {
+                                ?terminal cim:ACDCTerminal.sequenceNumber ?sn ;
+                                          (cim:Terminal.ConductingEquipment|cim:DCTerminal.DCConductingEquipment) ?this .
+                        }
+                        GROUP BY ?this
+                        HAVING (MIN(?sn) != 1 || MAX(?sn) != COUNT(?sn) || (COUNT(?sn) = 2 && SUM(?sn) != 3) || (COUNT(?sn) = 3 && SUM(?sn) != 6))
+                """
+        ] .
 
 l3igm:PowerTransformerEnd.b-valueRangeSparql
         rdf:type     sh:SPARQLConstraint;
@@ -2137,11 +2117,14 @@ l3igm:PowerTransformerEnd.b-valueRangeSparql
         sh:select    """
 	      SELECT $this  
         WHERE {
-		  BIND(EXISTS{$this cim:Equipment.aggregate true } AS ?isaggr) .
-		  $this ^cim:PowerTransformerEnd.PowerTransformer/cim:PowerTransformerEnd.b ?b .
-          BIND(EXISTS{$this ^cim:PowerTransformerEnd.PowerTransformer/cim:TransformerEnd.endNumber 3 } AS ?threewin) .
-
-          FILTER (?threewin=false && ?isaggr=false && ?b>0).
+		  FILTER NOT EXISTS { $this cim:Equipment.aggregate true }
+		  ?end cim:PowerTransformerEnd.PowerTransformer $this ;
+		       $PATH ?b .
+          FILTER NOT EXISTS {
+            ?threeWindingEnd cim:PowerTransformerEnd.PowerTransformer $this ;
+                             cim:TransformerEnd.endNumber 3 .
+          }
+          FILTER(?b>0).
         } """ .
 
 l3igm:OperationalLimitSetACLineSegment
@@ -2324,11 +2307,12 @@ l3igm:Terminal-EXCH8ConnectivityNode
         rdf:type        sh:PropertyShape;
         sh:description  "The association end cim:Terminal.ConnectivityNode is required in cases where EQ Operation profile is specified in the header. The different kinds of models are described in IEC TS 61970-600-1:2017 PROF4.";
         sh:group        l3igm:Level3-IGM;
+        sh:minCount     1;
+        sh:message      "The association end cim:Terminal.ConnectivityNode is not provided for a model that contains EQ Operation profile.";
         sh:name         "CNRequiredInEQOperations";
         sh:order        59;
         sh:path         cim:Terminal.ConnectivityNode;
-        sh:severity     sh:Violation;
-        sh:sparql       l3igm:Terminal-EXCH8ConnectivityNodeSparql .
+        sh:severity     sh:Violation.
 
 l3igm:RatioTapChanger-controlModeSparql
         rdf:type     sh:SPARQLConstraint;
@@ -2365,10 +2349,10 @@ l3igm:Switch-NoFlowControlAtNonRetainedSparql
 	      SELECT $this
         WHERE {
           $this ^cim:Terminal.ConductingEquipment/^cim:RegulatingControl.Terminal ?rc.
-          $this cim:Switch.retained ?retained .
+          OPTIONAL { $this cim:Switch.retained ?retained . }
           $this ^cim:Terminal.ConductingEquipment/^cim:RegulatingControl.Terminal/cim:RegulatingControl.mode ?voltageRC .
 
-         FILTER (?retained=false && ?voltageRC!=cim:RegulatingControlModeKind.voltage).
+         FILTER ((!bound(?retained) || ?retained=false) && ?voltageRC!=cim:RegulatingControlModeKind.voltage).
         } """ .
 
 l3igm:InjectionContainment
@@ -2417,11 +2401,15 @@ l3igm:Terminal-TerminalSeqNumSparql
 			SELECT  $this ?value
 			WHERE {
         $this $PATH ?type .
-		BIND(EXISTS{$this ^cim:Terminal.ConductingEquipment/cim:ACDCTerminal.sequenceNumber 1} AS ?t1).
-		BIND(EXISTS{$this ^cim:Terminal.ConductingEquipment/cim:ACDCTerminal.sequenceNumber 2} AS ?t2).
 
 		OPTIONAL {$this ^cim:Terminal.ConductingEquipment/(^cim:MutualCoupling.First_Terminal|^cim:MutualCoupling.Second_Terminal) ?mcterm }. 
-        FILTER ((?type=cim:EquivalentBranch && (?t1=false || ?t2=false)) || (?type=cim:ACLineSegment && bound(?mcterm) && (?t1=false || ?t2=false))).         
+        FILTER (
+          (?type=cim:EquivalentBranch || (?type=cim:ACLineSegment && bound(?mcterm)))
+          && (
+            NOT EXISTS { ?terminal1 cim:Terminal.ConductingEquipment $this ; cim:ACDCTerminal.sequenceNumber 1 }
+            || NOT EXISTS { ?terminal2 cim:Terminal.ConductingEquipment $this ; cim:ACDCTerminal.sequenceNumber 2 }
+          )
+        ).
 			}""" .
 
 l3igm:OperationalLimitValue-activePowerLimit
@@ -2429,7 +2417,7 @@ l3igm:OperationalLimitValue-activePowerLimit
         sh:description   "For every instance of cim:VoltageLimit, the value of cim:VoltageLimit.value must be > 0. For every instance of cim:CurrentLimit, the value of cim:CurrentLimit.value must be > 0. For every instance of cim:ActivePowerLimit, the value of cim:ActivePowerLimit.value must be > 0. For every instance of cim:ApparentPowerLimit, the value of cim:ApparentPowerLimit.value must be > 0.";
         sh:group         l3igm:Level3-IGM;
         sh:message       "A OperationalLimit value is not positive.";
-        sh:minInclusive  "0.0"^^xsd:float;
+        sh:minExclusive  "0.0"^^xsd:float;
         sh:name          "OperationalLimitValue";
         sh:order         48;
         sh:path          cim:ActivePowerLimit.value;
@@ -2455,13 +2443,13 @@ l3igm:Measurement.Terminal-MeasTerminalSparql
              $this $PATH ?value .
              OPTIONAL {$this cim:Measurement.Terminal ?terminal}.
              $this cim:Measurement.measurementType ?meastype . 
-             ?terminal1 cim:Terminal.ConductingEquipment ?value ;
-                        cim:ACDCTerminal.sequenceNumber 1 .
+             OPTIONAL {?terminal1 cim:Terminal.ConductingEquipment ?value ;
+                        cim:ACDCTerminal.sequenceNumber 1 .}
              OPTIONAL {?terminal2 cim:Terminal.ConductingEquipment ?value ;
                         cim:ACDCTerminal.sequenceNumber 2 .}
              OPTIONAL {?terminal3 cim:Terminal.ConductingEquipment ?value ;
                         cim:ACDCTerminal.sequenceNumber 3 .}
-				FILTER ((bound(?terminal) && (?meastype="TapPosition" || ?meastype="SwitchPosition" )) || (!bound(?terminal) && !(?meastype="TapPosition" || ?meastype="SwitchPosition" )) || (bound(?terminal) && ((?terminal!=?terminal1 && !bound(?terminal2) && !bound(?terminal3)) || (bound(?terminal2) && !bound(?terminal3) && ?terminal!=?terminal1 && ?terminal!=?terminal2) || (bound(?terminal2) && bound(?terminal3) && ?terminal!=?terminal1 && ?terminal!=?terminal2 && ?terminal!=?terminal3)))) .
+				FILTER ((bound(?terminal) && (?meastype="TapPosition" || ?meastype="SwitchPosition" )) || (!bound(?terminal) && !(?meastype="TapPosition" || ?meastype="SwitchPosition" )) || (bound(?terminal) && !(?meastype="TapPosition" || ?meastype="SwitchPosition" ) && NOT EXISTS { ?terminal cim:Terminal.ConductingEquipment ?value })) .
 			}""" .
 
 l3igm:CurveData-reactiveSparql
@@ -2488,7 +2476,7 @@ l3igm:CurveData-reactiveSparql
         $this cim:CurveData.y1value ?y1value  .
         $this cim:CurveData.y2value ?y2value.
 
-        FILTER ((?y2value<?y1value || (?y2value=?sumy1v/?countcd && ?y1value=?sumy2v/?countcd ))) .
+        FILTER (?y2value<?y1value || NOT EXISTS { ?cdo cim:CurveData.Curve ?value . ?cdo cim:CurveData.y1value ?oy1 . ?cdo cim:CurveData.y2value ?oy2 . FILTER (?oy1!=?oy2) }) .
         } """ .
 
 l3igm:Switch-NoFlowControlAtNonRetained
@@ -2531,52 +2519,41 @@ l3igm:TapChangerTable-RatioPhase
 
 l3igm:Terminal  rdf:type  sh:NodeShape;
         sh:property     l3igm:Terminal-EXCH8ConnectivityNode;
-        sh:targetClass  cim:Terminal .
+        sh:target [
+                rdf:type sh:SPARQLTarget ;
+                sh:prefixes cim: ;
+                sh:select """
+                        SELECT DISTINCT ?this
+                        WHERE {
+                                ?header md:Model.profile "http://entsoe.eu/CIM/EquipmentOperation/3/1" .
+                                ?this rdf:type cim:Terminal .
+                        }
+                """
+        ] .
 
 l3igm:CNTerminals
         rdf:type        sh:NodeShape ;
-        sh:property     l3igm:ConnectivityNode-CNTerminals , l3igm:ConnectivityNode-CNTerminals1Term;
+        sh:property     l3igm:ConnectivityNode-CNTerminals ;
         sh:targetClass  cim:ConnectivityNode .
 
 l3igm:ConnectivityNode-CNTerminals
         rdf:type        sh:PropertyShape ;
         sh:description  "Not connected cim:ConnectivityNode-s should not be present in the models. For a cim: ConnectivityNode to be considered connected it should have at least one cim:ConductingEquipment, which is a multiterminal equipment (i.e. has more than one cim:Terminal). " ;
         sh:message      "The cim:ConnectivityNode is not connected to equipment that has more than one cim:Terminal." ;
-        sh:minCount     1;
-        sh:path         [sh:inversePath cim:Terminal.ConnectivityNode] ;
+        sh:path         ( [ sh:inversePath cim:Terminal.ConnectivityNode ]
+                          cim:Terminal.ConductingEquipment
+                        ) ;
+        sh:qualifiedMinCount 1 ;
+        sh:qualifiedValueShape [
+                sh:property [
+                        sh:minCount 2 ;
+                        sh:path [ sh:inversePath cim:Terminal.ConductingEquipment ]
+                ]
+        ] ;
         sh:name         "CNTerminals" ;
         sh:group        l3igm:Level3-IGM ;
         sh:order        26 ;
         sh:severity     sh:Info .
-
-l3igm:ConnectivityNode-CNTerminals1Term
-        rdf:type        sh:PropertyShape ;
-        sh:sparql       l3igm:ConnectivityNode-CNTerminals1TermSparql ;
-        sh:path         rdf:type;
-        sh:description  "Not connected cim:ConnectivityNode-s should not be present in the models. For a cim: ConnectivityNode to be considered connected it should have at least one cim:ConductingEquipment, which is a multiterminal equipment (i.e. has more than one cim:Terminal). " ;
-        sh:name         "CNTerminals" ;
-        sh:group        l3igm:Level3-IGM ;
-        sh:order        27 ;
-        sh:severity     sh:Info .
-
-
-l3igm:ConnectivityNode-CNTerminals1TermSparql
-		rdf:type    sh:SPARQLConstraint ;
-		sh:message "The cim:ConnectivityNode is not connected to equipment that has more than one cim:Terminal." ;
-		sh:prefixes cim: ;
-    sh:select """
-	      SELECT $this (COUNT(?terms) as ?count)  (COUNT(?termsce) as ?counttce)
-        WHERE {
-          $this ^cim:Terminal.ConnectivityNode ?terms.
-          ?terms rdf:type ?termtype .
-          ?terms cim:Terminal.ConductingEquipment/^cim:Terminal.ConductingEquipment ?termsce.
-          ?termsce rdf:type ?termcetype .
-        }
-        GROUP BY $this ?termtype ?termcetype
-        HAVING(?count=1 && ?counttce=1)
-        """ .
-
-
 
 l3igm:LoadResponseCharacteristic-LCRCoefficientParameters
         rdf:type        sh:PropertyShape;
@@ -2587,20 +2564,6 @@ l3igm:LoadResponseCharacteristic-LCRCoefficientParameters
         sh:path         cim:LoadResponseCharacteristic.exponentModel;
         sh:severity     sh:Violation;
         sh:sparql       l3igm:LoadResponseCharacteristic-LCRCoefficientParametersSparql .
-
-l3igm:ACDCTerminal.sequenceNumber-numberingSparql
-        rdf:type     sh:SPARQLConstraint;
-        sh:message   "Invalid sequenceNumber for a cim:Terminal.";
-        sh:prefixes  cim:;
-        sh:select    """
-			SELECT  $this (COUNT(?sn) AS ?countsn) (COUNT(DISTINCT ?sn) AS ?countdsn) (MIN(?sn) AS ?minsn) (SUM(?sn) AS ?sumsn) (COUNT(?terms) AS ?countterms)
-			WHERE {
-        $this (^cim:Terminal.ConductingEquipment)|(^cim:DCTerminal.DCConductingEquipment) ?terms. 
-        ?terms cim:ACDCTerminal.sequenceNumber ?sn .
-			}
-      GROUP BY $this
-      HAVING(?countsn!=?countdsn || ?minsn!=1 || (?countterms=1 && ?sumsn!=1) || (?countterms=2 && (?sumsn/2)!=1.5) || (?countterms=3 && (?sumsn/3)!=2))
-      """ .
 
 l3igm:ControlArea-ControlAreaInstance
         rdf:type        sh:PropertyShape;
@@ -2626,9 +2589,7 @@ l3igm:CATieFlow-requiredTieFlowSparql
 			SELECT  $this
 			WHERE {
              $this $PATH cim:ControlAreaTypeKind.Interchange.
-             BIND(EXISTS{$this ^cim:TieFlow.ControlArea ?tieflow} AS ?hastf).
-			           
-				FILTER (?hastf=false) .
+             FILTER NOT EXISTS { ?tieflow cim:TieFlow.ControlArea $this }
 			}""" .
 
 l3igm:VoltageLimit.value-VoltageLimitsConsistency
