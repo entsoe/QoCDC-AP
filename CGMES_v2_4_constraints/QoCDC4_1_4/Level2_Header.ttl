@@ -58,27 +58,33 @@ l2head:FileHeaderSparql
         rdf:type     sh:SPARQLConstraint;
         sh:message   "Missing file header.(or multiple headers)  FullModel count: {?countfh}; DifferenceModel count: {?countdh}.";
         sh:prefixes  cim:;
-        sh:select    """
-			SELECT  $this ?value ?countfh ?countdh
-			WHERE {
-					{
-				SELECT $this (COUNT(?s1) AS ?countfh) (COUNT(?s2) AS ?countdh)
-				WHERE {
-				OPTIONAL {?s1 $PATH md:FullModel }.
-				OPTIONAL {?s2 $PATH dm:DifferenceModel }.
-
-				}
-				GROUP BY $this $PATH
-				}
-			
-          BIND(EXISTS{?s $PATH md:FullModel} AS ?fullm).
-		  BIND(EXISTS{?s $PATH dm:DifferenceModel} AS ?diffm).
-          FILTER((?fullm=false && ?diffm=false) || (?fullm=true && ?diffm=true) || ?countfh>1 || ?countdh>1).
-			}""" .
+        sh:select """
+                SELECT $this ?countfh ?countdh
+                WHERE {
+                    {
+                        SELECT (COUNT(?fh) AS ?countfh)
+                        WHERE {
+                            ?fh rdf:type md:FullModel .
+                        }
+                    }
+                    {
+                        SELECT (COUNT(?dh) AS ?countdh)
+                        WHERE {
+                            ?dh rdf:type dm:DifferenceModel .
+                        }
+                    }
+                    FILTER((?countfh + ?countdh) != 1)
+                }
+            """ .
 
 l2head:FullModel  rdf:type  sh:NodeShape;
-        sh:property    l2head:FileHeader;
-        sh:targetNode  md:Header .
+        sh:description  "Each type of instance file shall have exactly one file header of type FullModel or DifferenceModel.";
+        sh:group        l2head:Level2-IGMCGMHeader;
+        sh:name         "FileHeader";
+        sh:order        1;
+        sh:severity     sh:Violation;
+        sh:sparql       l2head:FileHeaderSparql .
+        sh:targetNode md:FullModel .
 
 l2head:Model.created-ModelCreatedSparql
         rdf:type     sh:SPARQLConstraint;
@@ -110,15 +116,6 @@ l2head:Model.scenarioTime-ScenarioTime
         sh:path         md:Model.scenarioTime;
         sh:severity     sh:Violation;
         sh:sparql       l2head:Model.scenarioTime-ScenarioTimeSparql .
-
-l2head:FileHeader  rdf:type  sh:PropertyShape;
-        sh:description  "Each type of instance file shall have exactly one file header of type FullModel or DifferenceModel.";
-        sh:group        l2head:Level2-IGMCGMHeader;
-        sh:name         "FileHeader";
-        sh:order        1;
-        sh:path         rdf:type;
-        sh:severity     sh:Violation;
-        sh:sparql       l2head:FileHeaderSparql .
 
 l2head:Level2-IGMCGMHeader
         rdf:type    sh:PropertyGroup;
