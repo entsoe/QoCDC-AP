@@ -22,10 +22,40 @@ l4igm:TapChangerTablePoint.ratio-valueRange
         sh:path          cim:TapChangerTablePoint.ratio;
         sh:severity      sh:Violation .
 
+cim:    sh:declare   [ rdf:type      sh:PrefixDeclaration;
+                       sh:namespace  "http://iec.ch/TC57/2013/CIM-schema-cim16#"^^xsd:anyURI;
+                       sh:prefix     "cim"
+                     ];
+        sh:declare   [ rdf:type      sh:PrefixDeclaration;
+                       sh:namespace  "http://www.w3.org/1999/02/22-rdf-syntax-ns#"^^xsd:anyURI;
+                       sh:prefix     "rdf"
+                     ];
+        sh:declare   [ rdf:type      sh:PrefixDeclaration;
+                       sh:namespace  "http://iec.ch/TC57/61970-552/ModelDescription/1#"^^xsd:anyURI;
+                       sh:prefix     "md"
+                     ];
+        sh:declare   [ rdf:type      sh:PrefixDeclaration;
+                       sh:namespace  "http://iec.ch/TC57/61970-552/DifferenceModel/1#"^^xsd:anyURI;
+                       sh:prefix     "dm"
+                     ] .
+
 l4igm:EQDIFFOperationalLimit-node
         rdf:type             sh:NodeShape;
         sh:property          l4igm:EQDIFFOperationalLimit-property;
-        sh:targetSubjectsOf  rdf:type .
+        # Only an EQDIFF dataset: an EquipmentCore dm:DifferenceModel header and no md:FullModel.
+        sh:target    [ rdf:type     sh:SPARQLTarget;
+                       sh:prefixes  cim:;
+                       sh:select    """
+                SELECT DISTINCT ?this
+                WHERE {
+                  ?eqdiff rdf:type dm:DifferenceModel ;
+                          md:Model.profile ?profile .
+                  FILTER(str(?profile) = "http://entsoe.eu/CIM/EquipmentCore/3/1")
+                  FILTER NOT EXISTS { ?fm rdf:type md:FullModel }
+                  ?this rdf:type ?type .
+                }
+                """
+                     ] .
 
 l4igm:EQDIFFOperationalLimit-property
         rdf:type        sh:PropertyShape;
