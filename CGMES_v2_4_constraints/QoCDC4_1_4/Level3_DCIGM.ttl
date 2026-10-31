@@ -81,7 +81,7 @@ l3dcigm:ACDCConverter.PccTerminal-valueType
         sh:severity     sh:Warning .
 
 l3dcigm:VsConverter  a     sh:NodeShape ;
-        sh:property     l3dcigm:ACDCConverter.idleLoss-valueRange , l3dcigm:ACDCConverter.minUdc-valueRange , l3dcigm:ACDCConverter.resistiveLoss-valueRange , l3dcigm:ACDCConverter.maxUdc-valueRange , l3dcigm:VsConverter.maxModulationIndex-valueRangeTypical , l3dcigm:ACDCConverter.switchingLoss-valueRange , l3dcigm:ACDCConverter.baseS-valueRange, l3dcigm:VsConverter.droop-valueRange, l3dcigm:VsConverter.droopCompensation-valueRange, l3dcigm:VsConverter.qShare-valueRange, l3dcigm:VsConverter.targetPhasePcc-valueRange, l3dcigm:VsConverter.targetPowerFactorPcc-valueRange, l3dcigm:VsConverter.targetPWMfactor-valueRange, l3dcigm:VsConverter.targetUpcc-valueRange, l3dcigm:VsConverter.uv-valueRange , l3dcigm:VsConverter.delta-valueRange  , l3dcigm:VsConverter.pPccControl-targetValuephasePcc, l3dcigm:VsConverter.pPccControl-targetValuePpcc , l3dcigm:VsConverter.pPccControl-targetValuepPccAndUdcDroop, l3dcigm:VsConverter.pPccControl-targetValuepPccAndUdcDroopPilot, l3dcigm:VsConverter.pPccControl-targetValuepPccAndUdcDroopWithCompensation, l3dcigm:VsConverter.pPccControl-targetValueUdc ;
+        sh:property     l3dcigm:ACDCConverter.idleLoss-valueRange , l3dcigm:ACDCConverter.minUdc-valueRange , l3dcigm:ACDCConverter.resistiveLoss-valueRange , l3dcigm:ACDCConverter.maxUdc-valueRange , l3dcigm:VsConverter.maxModulationIndex-valueRangeTypical , l3dcigm:ACDCConverter.switchingLoss-valueRange , l3dcigm:ACDCConverter.baseS-valueRange, l3dcigm:VsConverter.droop-valueRange, l3dcigm:VsConverter.droopCompensation-valueRange, l3dcigm:VsConverter.qShare-valueRange, l3dcigm:VsConverter.targetPhasePcc-valueRange, l3dcigm:VsConverter.targetPowerFactorPcc-valueRange, l3dcigm:VsConverter.targetPWMfactor-valueRange, l3dcigm:VsConverter.targetUpcc-valueRange, l3dcigm:VsConverter.uf-valueRange , l3dcigm:VsConverter.delta-valueRange  , l3dcigm:VsConverter.pPccControl-targetValuephasePcc, l3dcigm:VsConverter.pPccControl-targetValuePpcc , l3dcigm:VsConverter.pPccControl-targetValuepPccAndUdcDroop, l3dcigm:VsConverter.pPccControl-targetValuepPccAndUdcDroopPilot, l3dcigm:VsConverter.pPccControl-targetValuepPccAndUdcDroopWithCompensation, l3dcigm:VsConverter.pPccControl-targetValueUdc , l3dcigm:ACDCConverter.targetUdc-valueRange ;
         sh:targetClass  cim:VsConverter .
 
 l3dcigm:ACDCConverter.idleLoss-valueRange
@@ -475,6 +475,7 @@ l3dcigm:VsConverter.qShare-valueRange
 
 l3dcigm:VsConverter.targetPWMfactor-valueRange
         a                sh:PropertyShape ;
+        sh:deactivated   true ;
         sh:description   "The attribute shall be a positive value." ;
         sh:group         l3dcigm:Level3-DCIGM ;
         sh:message       "The value is negative or zero." ;
@@ -487,6 +488,7 @@ l3dcigm:VsConverter.targetPWMfactor-valueRange
 
 l3dcigm:VsConverter.targetPhasePcc-valueRange
         a                sh:PropertyShape ;
+        sh:deactivated   true ;
         sh:description   "The attribute shall be a positive value." ;
         sh:group         l3dcigm:Level3-DCIGM ;
         sh:message       "The value is negative or zero." ;
@@ -499,6 +501,7 @@ l3dcigm:VsConverter.targetPhasePcc-valueRange
 
 l3dcigm:VsConverter.targetPowerFactorPcc-valueRange
         a                sh:PropertyShape ;
+        sh:deactivated   true ;
         sh:description   "The attribute shall be a positive value." ;
         sh:group         l3dcigm:Level3-DCIGM ;
         sh:message       "The value is negative or zero." ;
@@ -630,15 +633,15 @@ l3dcigm:VsConverter.delta-valueRange
         sh:path          cim:VsConverter.delta ;
         sh:severity      sh:Violation .
 
-l3dcigm:VsConverter.uv-valueRange
+l3dcigm:VsConverter.uf-valueRange
         a                sh:PropertyShape ;
         sh:description   "The attribute shall be a positive value." ;
         sh:group         l3dcigm:Level3-DCIGM ;
         sh:message       "The value is negative or zero." ;
         sh:minExclusive  "0.0"^^xsd:float ;
-        sh:name          "C:301:SV:VsConverter.uv:valueRange" ;
+        sh:name          "C:301:SV:VsConverter.uf:valueRange" ;
         sh:order         11 ;
-        sh:path          cim:VsConverter.uv ;
+        sh:path          cim:VsConverter.uf ;
         sh:severity      sh:Violation .
 
 l3dcigm:ACDCConverter-containment
@@ -765,11 +768,11 @@ l3dcigm:CsConverter.targetAlpha-valueRangePairFrom
         a                    sh:PropertyShape ;
         sh:description       "Allowed values are within the range minAlpha<=targetAlpha<=maxAlpha." ;
         sh:group             l3dcigm:Level3-DCIGM ;
-        sh:lessThanOrEquals  cim:CsConverter.maxAlpha ;
-        sh:message           "The value is greater than CsConverter.maxAlpha." ;
+        sh:lessThanOrEquals  cim:CsConverter.targetAlpha ;
+        sh:message           "CsConverter.minAlpha is greater than CsConverter.targetAlpha." ;
         sh:name              "C:301:SSH:CsConverter.targetAlpha:valueRangePairFrom" ;
         sh:order             2 ;
-        sh:path              cim:CsConverter.targetAlpha ;
+        sh:path              cim:CsConverter.minAlpha ;
         sh:severity          sh:Violation .
 
 
@@ -777,18 +780,18 @@ l3dcigm:CsConverter.targetGamma-valueRangePairFrom
         a                    sh:PropertyShape ;
         sh:description       "Allowed values are within the range minGamma<=targetGamma<=maxGamma. " ;
         sh:group             l3dcigm:Level3-DCIGM ;
-        sh:lessThanOrEquals  cim:CsConverter.maxGamma ;
-        sh:message           "The value is greater than CsConverter.maxGamma." ;
+        sh:lessThanOrEquals  cim:CsConverter.targetGamma ;
+        sh:message           "CsConverter.minGamma is greater than CsConverter.targetGamma." ;
         sh:name              "C:301:SSH:CsConverter.targetGamma:valueRangePairFrom" ;
         sh:order             4 ;
-        sh:path              cim:CsConverter.targetGamma ;
+        sh:path              cim:CsConverter.minGamma ;
         sh:severity          sh:Violation .
 
 l3dcigm:DCboundary
     a               sh:NodeShape ;
     sh:name         "DCboundary" ;
     sh:description  "An IGM representing DC MAS shall have connection to even number of ConnectivityNode objects that are designated as BoundaryPoint. The minimum is connection to two BoundaryPoint objects." ;
-    sh:targetNode   md:Dummy;
+    sh:targetClass md:FullModel;
     sh:severity     sh:Violation ;
     sh:group        l3dcigm:Level3-DCIGM ;
     sh:order        6 ;
@@ -935,13 +938,14 @@ l3dcigm:PccTerminalBoundarySparql
         SELECT $this ?value
         WHERE {
           $this $PATH ?value .
-          BIND(EXISTS{$this cim:ACDCConverter.PccTerminal/cim:Terminal.TopologicalNode/entsoe:TopologicalNode.boundaryPoint true } AS ?isBP).
-
-         FILTER(?isBP=false).
+          FILTER NOT EXISTS {
+             $this cim:ACDCConverter.PccTerminal/cim:Terminal.TopologicalNode/entsoe:TopologicalNode.boundaryPoint true
+          }
         }""".
 
 l3dcigm:VsConverter.pPccControl-targetValuephasePcc
         a               sh:PropertyShape ;
+        sh:deactivated  true ;
         sh:sparql       l3dcigm:VsConverter.pPccControl-targetValuephasePccSparql ;
         sh:description  "Control is phase at point of common coupling. Target is provided by VsConverter.targetPhasePcc." ;
         sh:name         "targetValuephasePcc" ;
@@ -959,8 +963,8 @@ l3dcigm:VsConverter.pPccControl-targetValuephasePccSparql
 			SELECT  $this ?value
 			WHERE {
         $this $PATH ?value .
-        OPTIONAL {$this cim:VsConverter.targetPhasePcc ?targetphasepcc}.
-        FILTER (!bound(?targetphasepcc) && ?value=cim:VsPpccControlKind.phasePcc) .        
+        FILTER NOT EXISTS { $this cim:VsConverter.targetPhasePcc ?targetphasepcc }
+        FILTER (?value=cim:VsPpccControlKind.phasePcc) .
 			}""" .
 
 
@@ -983,8 +987,8 @@ l3dcigm:VsConverter.pPccControl-targetValuePpccSparql
 			SELECT  $this ?value
 			WHERE {
         $this $PATH ?value .
-        OPTIONAL {$this cim:ACDCConverter.targetPpcc ?targetppcc}.
-        FILTER (!bound(?targetppcc) && ?value=cim:VsPpccControlKind.pPcc) .        
+        FILTER NOT EXISTS { $this cim:ACDCConverter.targetPpcc ?targetppcc }
+        FILTER (?value=cim:VsPpccControlKind.pPcc) .
 			}""" . 
 
 
@@ -1007,10 +1011,12 @@ l3dcigm:VsConverter.pPccControl-targetValuepPccAndUdcDroopSparql
 			SELECT  $this ?value
 			WHERE {
         $this $PATH ?value .
-        OPTIONAL {$this cim:ACDCConverter.targetPpcc ?targetppcc}.
-        OPTIONAL {$this cim:ACDCConverter.targetUdc ?targetudc}.
-        OPTIONAL {$this cim:VsConverter.droop ?droop}.
-        FILTER ((!bound(?targetppcc) || !bound(?targetudc) || !bound(?droop)) && ?value=cim:VsPpccControlKind.pPccAndUdcDroop) .        
+        FILTER (
+          NOT EXISTS { $this cim:ACDCConverter.targetPpcc ?targetppcc }
+          || NOT EXISTS { $this cim:ACDCConverter.targetUdc ?targetudc }
+          || NOT EXISTS { $this cim:VsConverter.droop ?droop }
+        )
+        FILTER (?value=cim:VsPpccControlKind.pPccAndUdcDroop) .
 			}""" .  
 
 l3dcigm:VsConverter.pPccControl-targetValuepPccAndUdcDroopPilot
@@ -1032,10 +1038,12 @@ l3dcigm:VsConverter.pPccControl-targetValuepPccAndUdcDroopPilotSparql
 			SELECT  $this ?value
 			WHERE {
         $this $PATH ?value .
-        OPTIONAL {$this cim:ACDCConverter.targetPpcc ?targetppcc}.
-        OPTIONAL {$this cim:ACDCConverter.targetUdc ?targetudc}.
-        OPTIONAL {$this cim:VsConverter.droop ?droop}.
-        FILTER ((!bound(?targetppcc) || !bound(?targetudc) || !bound(?droop)) && ?value=cim:VsPpccControlKind.pPccAndUdcDroopPilot) .        
+        FILTER (
+          NOT EXISTS { $this cim:ACDCConverter.targetPpcc ?targetppcc }
+          || NOT EXISTS { $this cim:ACDCConverter.targetUdc ?targetudc }
+          || NOT EXISTS { $this cim:VsConverter.droop ?droop }
+        )
+        FILTER (?value=cim:VsPpccControlKind.pPccAndUdcDroopPilot) .
 			}""" .   
 
 
@@ -1058,11 +1066,13 @@ l3dcigm:VsConverter.pPccControl-targetValuepPccAndUdcDroopWithCompensationSparql
 			SELECT  $this ?value
 			WHERE {
         $this $PATH ?value .
-        OPTIONAL {$this cim:ACDCConverter.targetPpcc ?targetppcc}.
-        OPTIONAL {$this cim:ACDCConverter.targetUdc ?targetudc}.
-        OPTIONAL {$this cim:VsConverter.droop ?droop}.
-        OPTIONAL {$this cim:VsConverter.droopCompensation ?droopcompensation}.
-        FILTER ((!bound(?targetppcc) || !bound(?targetudc) || !bound(?droop) || !bound(?droopcompensation)) && ?value=cim:VsPpccControlKind.pPccAndUdcDroopWithCompensation) .        
+        FILTER (
+          NOT EXISTS { $this cim:ACDCConverter.targetPpcc ?targetppcc }
+          || NOT EXISTS { $this cim:ACDCConverter.targetUdc ?targetudc }
+          || NOT EXISTS { $this cim:VsConverter.droop ?droop }
+          || NOT EXISTS { $this cim:VsConverter.droopCompensation ?droopcompensation }
+        )
+        FILTER (?value=cim:VsPpccControlKind.pPccAndUdcDroopWithCompensation) .
 			}""" .    
 
 l3dcigm:VsConverter.pPccControl-targetValueUdc
@@ -1084,8 +1094,8 @@ l3dcigm:VsConverter.pPccControl-targetValueUdcSparql
 			SELECT  $this ?value
 			WHERE {
         $this $PATH ?value .
-        OPTIONAL {$this cim:ACDCConverter.targetUdc ?targetudc}.
-        FILTER (!bound(?targetudc) && ?value=cim:VsPpccControlKind.udc) .        
+        FILTER NOT EXISTS { $this cim:ACDCConverter.targetUdc ?targetudc }
+        FILTER (?value=cim:VsPpccControlKind.udc) .
 			}""" .   
 
 
