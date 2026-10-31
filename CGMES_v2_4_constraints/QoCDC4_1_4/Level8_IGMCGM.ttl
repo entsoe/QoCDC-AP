@@ -50,7 +50,7 @@ l8com:Limits-Congestion
         sh:group        l8com:Level8-IGMCGM;
         sh:name         "Congestion";
         sh:order        2;
-        sh:path         rdf:type;
+        sh:path         cim:OperationalLimitSet.Terminal;
         sh:severity     sh:Warning;
         sh:sparql       l8com:Limits-CongestionSparql .
 
@@ -61,18 +61,19 @@ l8com:Limits-CongestionSparql
         sh:select    """
 			SELECT  $this ?olclvalue ?olappvalue ?olapvalue ?p ?q
 			WHERE {
-				$this cim:OperationalLimitSet.Terminal ?terminal .
+				?limit cim:OperationalLimit.OperationalLimitSet $this ;
+				       rdf:type ?limitClass ;
+				       cim:OperationalLimit.OperationalLimitType ?limitType .
+				?limitType entsoe:OperationalLimitType.limitType entsoe:LimitTypeKind.patl .
+				?limit (cim:CurrentLimit.value|cim:ApparentPowerLimit.value|cim:ActivePowerLimit.value) ?limitValue .
+
+				$this $PATH ?terminal .
 				?svpf cim:SvPowerFlow.Terminal ?terminal .
 				?terminal cim:Terminal.TopologicalNode ?topologicalNode .
 				?svVoltage cim:SvVoltage.TopologicalNode ?topologicalNode ;
 				           cim:SvVoltage.v ?v .
 				?svpf cim:SvPowerFlow.p ?p.
 				?svpf cim:SvPowerFlow.q ?q.
-				
-				?limit cim:OperationalLimit.OperationalLimitSet $this ;
-				       rdf:type ?limitClass ;
-				       cim:OperationalLimit.OperationalLimitType/entsoe:OperationalLimitType.limitType entsoe:LimitTypeKind.patl ;
-				       (cim:CurrentLimit.value|cim:ApparentPowerLimit.value|cim:ActivePowerLimit.value) ?limitValue .
 
 				BIND(IF(?limitClass = cim:CurrentLimit, ?limitValue, 1/0) AS ?olclvalue) .
 				BIND(IF(?limitClass = cim:ApparentPowerLimit, ?limitValue, 1/0) AS ?olappvalue) .
@@ -86,7 +87,7 @@ l8com:Limits-CongestionSparql
             (?limitClass = cim:ApparentPowerLimit && ?app2 != 0 &&
                 ?limitValue*?limitValue < ?app2)
             ||
-            (?limitClass = cim:ActivePowerLimit && ?p != 0 && ?limitValue < ?p)
+            (?limitClass = cim:ActivePowerLimit && ?p != 0 && ?limitValue < ABS(?p))
         ) .
 			} """ .
 
