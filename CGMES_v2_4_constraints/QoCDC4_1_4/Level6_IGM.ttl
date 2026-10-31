@@ -59,7 +59,7 @@ l6igm:RegulatingControl-VoltageTargetConsistencyAtTN-NS
 				  ?ctrl cim:RegulatingControl.mode	  cim:RegulatingControlModeKind.voltage.
                   ?ctrl cim:RegulatingControl.enabled	  true.
 				  ?term cim:ACDCTerminal.connected true.
-				  ?term (cim:Terminal.ConductingEquipment/cim:RegulatingCondEq.controlEnabled)|(^cim:RegulatingControl.Terminal/^cim:TapChanger.TapChangerControl/cim:TapChanger.ltcFlag)|(cim:Terminal.ConductingEquipment/cim:EquivalentInjection.regulatingCapability) true.
+				  ?term (cim:Terminal.ConductingEquipment/cim:RegulatingCondEq.controlEnabled)|(^cim:RegulatingControl.Terminal/^cim:TapChanger.TapChangerControl/cim:TapChanger.ltcFlag)|(cim:Terminal.ConductingEquipment/cim:EquivalentInjection.regulationCapability) true.
                 }
                 """  
                      ] .
@@ -82,7 +82,7 @@ l6igm:RegulatingControl-VoltageTargetConsistencyAtTNSparql
 		sh:select """
         SELECT $this (GROUP_CONCAT(DISTINCT STR(?ctrl); separator=", ") AS ?ctrl) ($this AS ?tn)
         WHERE {
-            $this ^cim:Terminal.TopologicalNode ?term .
+            ?term cim:Terminal.TopologicalNode $this .
             ?term ^cim:RegulatingControl.Terminal ?ctrl .
 
             ?ctrl
@@ -92,7 +92,7 @@ l6igm:RegulatingControl-VoltageTargetConsistencyAtTNSparql
 
             ?term cim:ACDCTerminal.connected true .
 
-			?term (cim:Terminal.ConductingEquipment/cim:RegulatingCondEq.controlEnabled)|(^cim:RegulatingControl.Terminal/^cim:TapChanger.TapChangerControl/cim:TapChanger.ltcFlag)|(cim:Terminal.ConductingEquipment/cim:EquivalentInjection.regulatingCapability) true.
+			?term (cim:Terminal.ConductingEquipment/cim:RegulatingCondEq.controlEnabled)|(^cim:RegulatingControl.Terminal/^cim:TapChanger.TapChangerControl/cim:TapChanger.ltcFlag)|(cim:Terminal.ConductingEquipment/cim:EquivalentInjection.regulationCapability) true.
         }
         GROUP BY $this
         HAVING (COUNT(DISTINCT ?tv) > 1)
@@ -117,24 +117,22 @@ l6igm:KirchhoffsFirstLawSparql
         SELECT $this ?sumP ?sumQ
         WHERE {
           {
-           SELECT $this (SUM(?p) AS ?sumP) (SUM(?q) AS ?sumQ)
+            SELECT $this (SUM(?p) AS ?sumP) (SUM(?q) AS ?sumQ)
             WHERE {
-              $this ^cim:Terminal.TopologicalNode/^cim:SvPowerFlow.Terminal ?svpf .
-              ?svpf cim:SvPowerFlow.p ?p ;
+              ?terminal cim:Terminal.TopologicalNode $this .
+              ?svpf cim:SvPowerFlow.Terminal ?terminal ;
                     cim:SvPowerFlow.q ?q ;
-                    cim:SvPowerFlow.Terminal ?t .
+                    cim:SvPowerFlow.p ?p .
               FILTER NOT EXISTS {
-                ?t cim:Terminal.ConductingEquipment ?ce .
-                  { ?ce a cim:Switch } UNION { ?ce a cim:Breaker }
-                   ?ce cim:Switch.retained false .
+                ?terminal cim:Terminal.ConductingEquipment ?ce .
+                ?ce cim:Switch.retained false .
               }
             }
             GROUP BY $this
           }
 
-          BIND(EXISTS{$this ^cim:SvInjection.TopologicalNode ?svi} AS ?hassvi).
-
-          FILTER( (?hassvi=false && (ABS(?sumP) > 0.1 || ABS(?sumQ) > 0.1))).
+          FILTER NOT EXISTS { ?svi cim:SvInjection.TopologicalNode $this }
+          FILTER(ABS(?sumP) > 0.1 || ABS(?sumQ) > 0.1).
         }
     """ .
 
