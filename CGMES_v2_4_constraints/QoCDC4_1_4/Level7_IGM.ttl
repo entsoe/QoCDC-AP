@@ -66,5 +66,5 @@ l7igm:ConductingEquipment-InconsistentTnBaseVoltageSparql
 				?ce cim:ConductingEquipment.BaseVoltage/cim:BaseVoltage.nominalVoltage ?cebvnv .
 				$this cim:TopologicalNode.BaseVoltage/cim:BaseVoltage.nominalVoltage ?tnbvnv .
 
-        FILTER ((?cebvnv<?tnbvnv && (ABS(?cebvnv-?tnbvnv)/?cebvnv)>0.1) || (?cebvnv>?tnbvnv && (ABS(?cebvnv-?tnbvnv)/?tnbvnv)>0.1)) .
+        FILTER ((ABS(?cebvnv-?tnbvnv)/?tnbvnv)>0.1) .
 			}""" .
