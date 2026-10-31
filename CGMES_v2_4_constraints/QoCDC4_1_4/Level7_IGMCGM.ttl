@@ -60,18 +60,18 @@ l7com:ACLineSegment-BaseVoltageDiffSparql
         sh:message   "AC Tie line nominalVoltage deviates from the boundary point base voltage more than 10%. Voltage 1: {?tp1nv}; Voltage 2: {?tp2nv}";
         sh:prefixes  cim:;
         sh:select    """
-			SELECT  $this ?tp1nv ?tp2nv
+			SELECT  DISTINCT $this ?tp1nv ?tp2nv
 			WHERE {
-        ?term1 cim:Terminal.ConductingEquipment $this .
-        ?term2 cim:Terminal.ConductingEquipment $this .
-        ?term1 cim:ACDCTerminal.sequenceNumber 1.
-        ?term2 cim:ACDCTerminal.sequenceNumber 2.
-        ?tp1  ^cim:Terminal.TopologicalNode ?term1 .
-        ?tp1 cim:TopologicalNode.BaseVoltage/cim:BaseVoltage.nominalVoltage ?tp1nv .
-        ?tp2  ^cim:Terminal.TopologicalNode ?term2 .
-        ?tp2 cim:TopologicalNode.BaseVoltage/cim:BaseVoltage.nominalVoltage ?tp2nv .
-        
-        FILTER ((?tp1nv<?tp2nv && (ABS(?tp1nv-?tp2nv)/?tp1nv)>0.1) || (?tp1nv>?tp2nv && (ABS(?tp1nv-?tp2nv)/?tp2nv)>0.1)) .        
+        ?tf cim:TieFlow.Terminal ?term ;
+            cim:TieFlow.ControlArea/cim:ControlArea.type cim:ControlAreaTypeKind.Interchange .
+        ?term cim:Terminal.ConductingEquipment $this ;
+              cim:Terminal.TopologicalNode ?tp2 .
+        ?tp2 entsoe:TopologicalNode.boundaryPoint true ;
+             cim:TopologicalNode.BaseVoltage/cim:BaseVoltage.nominalVoltage ?tp2nv .
+        FILTER NOT EXISTS { ?tp2 cim:IdentifiedObject.description "HVDC" }
+        $this cim:ConductingEquipment.BaseVoltage/cim:BaseVoltage.nominalVoltage ?tp1nv .
+
+        FILTER ((ABS(?tp1nv-?tp2nv)/?tp2nv) > "0.1"^^xsd:float) .
 			}""" .
 
 
