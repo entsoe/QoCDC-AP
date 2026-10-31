@@ -64,10 +64,7 @@ l4com:DLEQDLEQDIFFDLTPDLDY-DLSparql
         sh:select    """
 	      SELECT DISTINCT $this  
         WHERE {
-          OPTIONAL {$this md:Model.DependentOn/md:Model.profile ?profile} .
-		  BIND(EXISTS{$this md:Model.DependentOn/md:Model.profile "http://entsoe.eu/CIM/EquipmentCore/3/1" } AS ?coprof) .
-         
-          FILTER ( !bound(?profile) ||  ?coprof=false  ).
+          FILTER NOT EXISTS { $this md:Model.DependentOn/md:Model.profile "http://entsoe.eu/CIM/EquipmentCore/3/1" }
         } """ .
 
 l4com:EQEQBD  rdf:type  sh:NodeShape;
@@ -117,12 +114,11 @@ l4com:SVSSHSVTPSVTPBD-SVSparql
         sh:select    """
 	      SELECT DISTINCT $this  
         WHERE {
-          OPTIONAL {$this md:Model.DependentOn/md:Model.profile ?profile} .
-		  BIND(EXISTS{$this md:Model.DependentOn/md:Model.profile "http://entsoe.eu/CIM/SteadyStateHypothesis/1/1" } AS ?sshprof) .
-		  BIND(EXISTS{$this md:Model.DependentOn/md:Model.profile "http://entsoe.eu/CIM/Topology/4/1" } AS ?tpprof) .
-		  BIND(EXISTS{$this md:Model.DependentOn/md:Model.profile "http://entsoe.eu/CIM/TopologyBoundary/3/1" } AS ?tpbdprof) .
-         
-          FILTER ( !bound(?profile) ||  ?sshprof=false || ?tpprof=false || ?tpbdprof=false).
+          FILTER (
+            NOT EXISTS { $this md:Model.DependentOn/md:Model.profile "http://entsoe.eu/CIM/SteadyStateHypothesis/1/1" }
+            || NOT EXISTS { $this md:Model.DependentOn/md:Model.profile "http://entsoe.eu/CIM/Topology/4/1" }
+            || NOT EXISTS { $this md:Model.DependentOn/md:Model.profile "http://entsoe.eu/CIM/TopologyBoundary/3/1" }
+          )
         } """ .
 
 l4com:TPEQTPEQDIFF-TP
@@ -191,10 +187,7 @@ l4com:GLEQGLEQBD-GLSparql
         sh:select    """
 	      SELECT DISTINCT $this  
         WHERE {
-          OPTIONAL {$this md:Model.DependentOn/md:Model.profile ?profile} .
-		  BIND(EXISTS{$this md:Model.DependentOn/md:Model.profile "http://entsoe.eu/CIM/EquipmentCore/3/1" } AS ?coprof) .
-
-          FILTER ( !bound(?profile) ||  ?coprof=false ).
+          FILTER NOT EXISTS { $this md:Model.DependentOn/md:Model.profile "http://entsoe.eu/CIM/EquipmentCore/3/1" }
         } """ .
 
 l4com:TPBDEQBD  rdf:type  sh:NodeShape;
@@ -298,10 +291,7 @@ l4com:SSHEQSSHEQDIFF-SSHSparql
         sh:select    """
 	      SELECT $this  
         WHERE {
-          OPTIONAL {$this md:Model.DependentOn/md:Model.profile ?profile} .
-		  BIND(EXISTS{$this md:Model.DependentOn/md:Model.profile "http://entsoe.eu/CIM/EquipmentCore/3/1" } AS ?coprof) .
-         
-          FILTER ( !bound(?profile) ||  ?coprof=false).
+          FILTER NOT EXISTS { $this md:Model.DependentOn/md:Model.profile "http://entsoe.eu/CIM/EquipmentCore/3/1" }
         } """ .
 
 
@@ -312,10 +302,7 @@ l4com:TPEQTPEQDIFF-TPSparql
         sh:select    """
 	      SELECT DISTINCT $this  
         WHERE {
-          OPTIONAL {$this md:Model.DependentOn/md:Model.profile ?profile} .
-		  BIND(EXISTS{$this md:Model.DependentOn/md:Model.profile "http://entsoe.eu/CIM/EquipmentCore/3/1" } AS ?coprof) .
-         
-          FILTER ( !bound(?profile) ||  ?coprof=false).
+          FILTER NOT EXISTS { $this md:Model.DependentOn/md:Model.profile "http://entsoe.eu/CIM/EquipmentCore/3/1" }
         } """ .
 
 l4com:DLEQDLEQDIFFDLTPDLDY
@@ -339,10 +326,7 @@ l4com:DYEQDYEQDIFF-DYSparql
         sh:select    """
 	      SELECT $this  
         WHERE {
-          OPTIONAL {$this md:Model.DependentOn/md:Model.profile ?profile} .
-		  BIND(EXISTS{$this md:Model.DependentOn/md:Model.profile "http://entsoe.eu/CIM/EquipmentCore/3/1" } AS ?coprof) .
-         
-          FILTER ( !bound(?profile) ||  ?coprof=false).
+          FILTER NOT EXISTS { $this md:Model.DependentOn/md:Model.profile "http://entsoe.eu/CIM/EquipmentCore/3/1" }
         } """ .
 
 l4com:SVSSHSVTPSVTPBD-SV
@@ -407,7 +391,7 @@ l4com:EQDIFFEQ  rdf:type  sh:NodeShape;
                           [ sh:maxCount  0;
                             sh:path      md:Model.DependentOn
                           ]
-                          [ sh:in    ( "http://entsoe.eu/CIM/EquipmentCore/3/1" );
+                          [ sh:hasValue  "http://entsoe.eu/CIM/EquipmentCore/3/1";
                             sh:path  ( md:Model.Supersedes md:Model.profile )
                           ]
                         );
