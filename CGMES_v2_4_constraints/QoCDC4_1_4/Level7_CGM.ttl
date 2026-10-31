@@ -10,33 +10,6 @@
 @prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
 
 
-cim:    rdf:type     owl:Ontology;
-        owl:imports  sh:;
-        sh:declare   [ rdf:type      sh:PrefixDeclaration;
-                       sh:namespace  "http://iec.ch/TC57/2013/CIM-schema-cim16#"^^xsd:anyURI;
-                       sh:prefix     "cim"
-                     ];
-        sh:declare   [ rdf:type      sh:PrefixDeclaration;
-                       sh:namespace  "http://www.w3.org/1999/02/22-rdf-syntax-ns#"^^xsd:anyURI;
-                       sh:prefix     "rdf"
-                     ];
-        sh:declare   [ rdf:type      sh:PrefixDeclaration;
-                       sh:namespace  "http://iec.ch/TC57/61970-552/ModelDescription/1#"^^xsd:anyURI;
-                       sh:prefix     "md"
-                     ];
-        sh:declare   [ rdf:type      sh:PrefixDeclaration;
-                       sh:namespace  "http://iec.ch/TC57/61970-552/DifferenceModel/1#"^^xsd:anyURI;
-                       sh:prefix     "dm"
-                     ];
-        sh:declare   [ rdf:type      sh:PrefixDeclaration;
-                       sh:namespace  "http://www.w3.org/2001/XMLSchema#"^^xsd:anyURI;
-                       sh:prefix     "xsd"
-                     ];
-        sh:declare   [ rdf:type      sh:PrefixDeclaration;
-                       sh:namespace  "http://entsoe.eu/CIM/SchemaExtension/3/1#"^^xsd:anyURI;
-                       sh:prefix     "entsoe"
-                     ] .
-
 l7cgm:PairedEICompatibility-ps
         rdf:type        sh:NodeShape;
         sh:description  "The rule is checking SSH information of a paired boundary point in a CGM. The two cim:EquivalentInjection-s at a boundary cim:TopologicalNode shall have:  - control disabled (cim:EquivalentInjection.regulationStatus = false); - the sum of their active power injections (cim:EquivalentInjection.p) shall be less than or equal to 0.1; - the sum of their reactive power injections (cim:EquivalentInjection.q) shall be less than or equal to 0.1.";
