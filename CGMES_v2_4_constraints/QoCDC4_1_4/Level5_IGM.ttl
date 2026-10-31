@@ -84,11 +84,10 @@ l5igm:TapChanger.ltcFlag-tapChangerControlSparql
         sh:prefixes  cim:;
         sh:select    """
 			SELECT  $this ?value  
-			WHERE {      
+        WHERE {
         $this $PATH ?value .
-        BIND(EXISTS{$this cim:TapChanger.TapChangerControl ?tcc } AS ?hastcc).
-        
-        FILTER (?hastcc=true && ?value=false) .
+        $this cim:TapChanger.TapChangerControl ?tcc .
+        FILTER(?value=false) .
 			}""" .
 
 l5igm:SynchronousMachine-SMOperatingModePConsistencySparql
@@ -98,10 +97,10 @@ l5igm:SynchronousMachine-SMOperatingModePConsistencySparql
         sh:select    """
 			SELECT  $this ?value 
 			WHERE {
-        $this cim:SynchronousMachine.operatingMode ?opmode .
+        $this $PATH ?opmode .
 		$this cim:RotatingMachine.p ?p .
 
-		FILTER((?opmode=cim:SynchronousMachineOperatingMode.motor && ?p<0.0005) || (?opmode=cim:SynchronousMachineOperatingMode.generator && ?p>0.0005)).
+		FILTER((?opmode=cim:SynchronousMachineOperatingMode.motor && ?p<"-0.0005"^^xsd:float) || (?opmode=cim:SynchronousMachineOperatingMode.generator && ?p>"0.0005"^^xsd:float)).
 			}""" .
 
 l5igm:SynchronousMachine-refPrioritySparql
@@ -109,15 +108,14 @@ l5igm:SynchronousMachine-refPrioritySparql
         sh:message   "Multiple cim:SynchronousMachine objects that have referencePriority equal to 1 connect to different cim:TopologicalNode objects.";
         sh:prefixes  cim:;
         sh:select    """
-        SELECT DISTINCT $this (COUNT(?value) AS ?count) ?value
+        SELECT $this (COUNT(DISTINCT ?tn) AS ?value)
         WHERE {
-                ?value rdf:type cim:TopologicalNode.
-                ?value (^cim:Terminal.TopologicalNode/cim:Terminal.ConductingEquipment/cim:SynchronousMachine.referencePriority)|(^cim:ConnectivityNode.TopologicalNode/^cim:Terminal.ConnectivityNode/cim:Terminal.ConductingEquipment/cim:SynchronousMachine.referencePriority) 1 .
+                ?sm cim:SynchronousMachine.referencePriority 1 .
+                ?terminal cim:Terminal.ConductingEquipment ?sm .
+                ?terminal cim:Terminal.TopologicalNode|(cim:Terminal.ConnectivityNode/cim:ConnectivityNode.TopologicalNode) ?tn .
         }
-        GROUP BY $this ?value
-        HAVING(?count>1)
-        OFFSET 1
-        LIMIT 1
+        GROUP BY $this
+        HAVING (COUNT(DISTINCT ?tn) > 1)
         """ .
 
 l5igm:TieFlow-SvPowerFlowBranchInstances
@@ -172,11 +170,14 @@ l5igm:EquivalentInjection-containmentSparql
         sh:select    """
 	      SELECT $this  
         WHERE {
-          BIND(EXISTS{$this ^cim:Terminal.ConductingEquipment/cim:Terminal.TopologicalNode/entsoe:TopologicalNode.boundaryPoint true } AS ?bp) .
 		  OPTIONAL {$this cim:Equipment.EquipmentContainer/rdf:type ?type} .
 		  OPTIONAL {$this cim:ConductingEquipment.BaseVoltage ?bv} .
           
-          FILTER ( (?bp=true && ((bound(?type) && ?type!=cim:Line) || (!bound(?type) && !bound(?bv)))) || (?bp=false && ?type!=cim:VoltageLevel)).
+          FILTER (
+            (EXISTS { $this ^cim:Terminal.ConductingEquipment/cim:Terminal.TopologicalNode/entsoe:TopologicalNode.boundaryPoint true } && ((bound(?type) && ?type!=cim:Line) || (!bound(?type) && !bound(?bv))))
+            ||
+            (NOT EXISTS { $this ^cim:Terminal.ConductingEquipment/cim:Terminal.TopologicalNode/entsoe:TopologicalNode.boundaryPoint true } && (!bound(?type) || ?type!=cim:VoltageLevel))
+          ).
         } """ .
 
 l5igm:Conductor-containment
@@ -226,8 +227,7 @@ l5igm:Control-ControlLinkedToTopologySparql
 	      SELECT $this ?value 
         WHERE {
         $this $PATH ?value .
-        OPTIONAL {?value cim:Terminal.TopologicalNode ?ttn } .
-        FILTER (!bound(?ttn)).
+        FILTER NOT EXISTS { ?value cim:Terminal.TopologicalNode ?topologicalNode }
         }""" .
 
 l5igm:ConductingEquipment.BaseVoltage-BranchBaseVoltage
@@ -247,18 +247,15 @@ l5igm:Switch-sameTopologicalNodeSparql
         sh:message   "A retained cim:Switch is present with cim:Terminals associated with the same cim:TopologicalNode. (ID via cim:Terminal.TopologicalNode: {?tn1}).";
         sh:prefixes  cim:;
         sh:select    """
-			SELECT  $this  ?tn1
+			SELECT $this ?tn1
 			WHERE {
              $this $PATH true .
-             ?terminal1 cim:Terminal.ConductingEquipment $this .
-			 ?terminal2 cim:Terminal.ConductingEquipment $this .
-             ?terminal1 cim:ACDCTerminal.sequenceNumber 1 .
-			 ?terminal2 cim:ACDCTerminal.sequenceNumber 2 .
-			 ?terminal1 cim:Terminal.TopologicalNode ?tn1 .
-			 ?terminal2 cim:Terminal.TopologicalNode ?tn1 .
-
-		     FILTER (?terminal1!=?terminal2) .
-			}""" .
+			 ?terminal cim:Terminal.ConductingEquipment $this ;
+			           (cim:Terminal.TopologicalNode|(cim:Terminal.ConnectivityNode/cim:ConnectivityNode.TopologicalNode)) ?tn1 .
+			}
+			GROUP BY $this ?tn1
+			HAVING (COUNT(DISTINCT ?terminal) > 1)
+			""" .
 
 l5igm:TapChangerControl-remoteQcontrolSparql
         rdf:type     sh:SPARQLConstraint;
@@ -269,10 +266,9 @@ l5igm:TapChangerControl-remoteQcontrolSparql
         WHERE {
           $this cim:RegulatingControl.mode cim:RegulatingControlModeKind.reactivePower .
           $this cim:RegulatingControl.Terminal ?rcterm .
-          OPTIONAL {$this ^cim:TapChanger.TapChangerControl/cim:RatioTapChanger.TransformerEnd/cim:TransformerEnd.Terminal ?tcterm1 }.
-          OPTIONAL {$this ^cim:TapChanger.TapChangerControl/cim:PhaseTapChanger.TransformerEnd/cim:TransformerEnd.Terminal ?tcterm2 }.
-        
-          FILTER (((?rcterm!=?tcterm1 && !bound(?tcterm2) && bound(?tcterm1)) || (?rcterm!=?tcterm2 && !bound(?tcterm1) && bound(?tcterm2)))).
+          $this ^cim:TapChanger.TapChangerControl/(cim:RatioTapChanger.TransformerEnd|cim:PhaseTapChanger.TransformerEnd) ?tcend .
+          FILTER NOT EXISTS { ?tcend cim:TransformerEnd.Terminal ?rcterm }
+          FILTER NOT EXISTS { ?tcend cim:PowerTransformerEnd.PowerTransformer/^cim:PowerTransformerEnd.PowerTransformer/cim:TransformerEnd.Terminal ?rcterm }
         }""" .
 
 l5igm:GeographicalRegion-EQ__4
@@ -311,44 +307,32 @@ l5igm:ClosedNonRetainedSwitchVsTNSparql
         sh:message   "A closed non-retained cim:Switch {?switch} has both cim:Terminals connected to different cim:TopologicalNode-s {?tn1} and {?tn2}.";
         sh:prefixes  cim:;
         sh:select    """
-			SELECT DISTINCT $this ?switch ?tn1 ?tn2
+			SELECT $this (SAMPLE($this) AS ?switch) (MIN(?tn) AS ?tn1) (MAX(?tn) AS ?tn2)
 			WHERE {
-			 ?term1 cim:Terminal.ConductingEquipment $this.
-			 ?term2 cim:Terminal.ConductingEquipment $this.
-			 BIND($this AS ?switch)
-			 ?term1 cim:ACDCTerminal.sequenceNumber 1.
-			 ?term2 cim:ACDCTerminal.sequenceNumber 2.
-			 ?term1 cim:Terminal.TopologicalNode|(cim:Terminal.ConnectivityNode/cim:ConnectivityNode.TopologicalNode) ?tn1.
-			 ?term2 cim:Terminal.TopologicalNode|(cim:Terminal.ConnectivityNode/cim:ConnectivityNode.TopologicalNode) ?tn2.
-
-				FILTER NOT EXISTS { $this cim:Switch.retained true. }
-				FILTER NOT EXISTS { $this cim:Switch.open true. }
-				FILTER (?tn1!=?tn2) .
-			}""" .
+				$this $PATH false .
+				$this cim:Switch.retained false .
+			 ?terminal cim:Terminal.ConductingEquipment $this ;
+			           (cim:Terminal.TopologicalNode|(cim:Terminal.ConnectivityNode/cim:ConnectivityNode.TopologicalNode)) ?tn .
+			}
+			GROUP BY $this
+			HAVING (COUNT(DISTINCT ?tn) > 1)
+			""" .
 
 l5igm:Switch-connectionSparql
         rdf:type     sh:SPARQLConstraint;
         sh:message   "A cim:Switch that connects to cim:ConnectivityNode or cim:TopologicalNode objects in different cim:BaseVoltage.";
         sh:prefixes  cim:;
         sh:select    """
-	      SELECT $this  
-        WHERE {
-            ?term1 cim:Terminal.ConductingEquipment $this .
-            ?term2 cim:Terminal.ConductingEquipment $this .
-            ?term1 cim:ACDCTerminal.sequenceNumber 1 .
-            ?term2 cim:ACDCTerminal.sequenceNumber 2 .
-            ?term1 (cim:Terminal.ConnectivityNode/cim:ConnectivityNode.ConnectivityNodeContainer)|(cim:Terminal.TopologicalNodeNode/cim:TopologicalNodeNode.ConnectivityNodeContainer) ?cnc1 .
-
-            ?term2 (cim:Terminal.ConnectivityNode/cim:ConnectivityNode.ConnectivityNodeContainer)|(cim:Terminal.TopologicalNodeNode/cim:TopologicalNodeNode.ConnectivityNodeContainer) ?cnc2 .
-
-		?cnc1 rdf:type cim:VoltageLevel .
-		?cnc2 rdf:type cim:VoltageLevel .
-
-		?cnc1 cim:VoltageLevel.BaseVoltage/cim:BaseVoltage.nominalVoltage ?vlnv1 .
-		?cnc2 cim:VoltageLevel.BaseVoltage/cim:BaseVoltage.nominalVoltage ?vlnv2 .
-
-		FILTER (?cnc1!=?cnc2 && ?vlnv1!=?vlnv2).
-        }""" .
+			SELECT $this
+			WHERE {
+				?terminal cim:Terminal.ConductingEquipment $this .
+				?terminal (cim:Terminal.ConnectivityNode/cim:ConnectivityNode.ConnectivityNodeContainer)|(cim:Terminal.TopologicalNode/cim:TopologicalNode.ConnectivityNodeContainer) ?voltageLevel .
+				?voltageLevel rdf:type cim:VoltageLevel ;
+					cim:VoltageLevel.BaseVoltage/cim:BaseVoltage.nominalVoltage ?nominalVoltage .
+			}
+			GROUP BY $this
+			HAVING (COUNT(DISTINCT ?nominalVoltage) > 1)
+        """ .
 
 l5igm:Model-angleReferenceSparql
         rdf:type     sh:SPARQLConstraint;
@@ -357,16 +341,38 @@ l5igm:Model-angleReferenceSparql
         sh:select    """
     	SELECT $this ?value
 			WHERE {
-          $this cim:TopologicalIsland.AngleRefTopologicalNode ?value.
-          ?value ^cim:SvVoltage.TopologicalNode/cim:SvVoltage.v ?svvol.
-          ?terms cim:Terminal.TopologicalNode ?value .
-
-          ?terms ^cim:RegulatingControl.Terminal/cim:RegulatingControl.mode ?rcvoltage  .
-          ?terms ^cim:RegulatingControl.Terminal/cim:RegulatingControl.enabled ?enab .
-
-          FILTER (!(?enab = true && ?svvol>0 && ?rcvoltage=cim:RegulatingControlModeKind.voltage) || (?rcvoltage!=cim:RegulatingControlModeKind.voltage)).
+          $this cim:TopologicalIsland.AngleRefTopologicalNode ?value .
+          OPTIONAL { ?value ^cim:SvVoltage.TopologicalNode/cim:SvVoltage.v ?svvol }
+          # warn unless the node is energised and option 1 or option 2 holds
+          FILTER (!bound(?svvol) || ?svvol = 0 || (
+            NOT EXISTS {
+              ?t1 cim:Terminal.TopologicalNode ?value .
+              ?rc1 cim:RegulatingControl.Terminal ?t1 ;
+                   cim:RegulatingControl.enabled true ;
+                   cim:RegulatingControl.mode cim:RegulatingControlModeKind.voltage .
+              FILTER NOT EXISTS { ?rc1 cim:RegulatingControl.discrete true }
+              ?eq1 cim:RegulatingCondEq.RegulatingControl ?rc1 .
+              ?eq1 ^cim:Terminal.ConductingEquipment/cim:Terminal.TopologicalNode/^cim:SvVoltage.TopologicalNode/cim:SvVoltage.v ?v1 .
+              FILTER (?v1 != 0)
+              FILTER NOT EXISTS { ?eq1 cim:SynchronousMachine.operatingMode cim:SynchronousMachineOperatingMode.condenser }
+            }
+            && NOT EXISTS {
+              ?t2 cim:Terminal.TopologicalNode ?value ;
+                  cim:Terminal.ConductingEquipment ?eq2 .
+              ?eq2 cim:RegulatingCondEq.RegulatingControl ?rc2 .
+              ?rc2 cim:RegulatingControl.enabled true ;
+                   cim:RegulatingControl.mode cim:RegulatingControlModeKind.voltage .
+              FILTER NOT EXISTS { ?rc2 cim:RegulatingControl.discrete true }
+              FILTER NOT EXISTS { ?eq2 cim:SynchronousMachine.operatingMode cim:SynchronousMachineOperatingMode.condenser }
+            }
+            && NOT EXISTS {
+              ?t3 cim:Terminal.TopologicalNode ?value ;
+                  cim:Terminal.ConductingEquipment ?ei .
+              ?ei cim:EquivalentInjection.regulationCapability true ;
+                  cim:EquivalentInjection.regulationStatus true .
+            }
+          )) .
       }
-      #LIMIT 1
       """ .
 
 l5igm:TapChanger  rdf:type  sh:NodeShape;
@@ -384,7 +390,7 @@ l5igm:ClosedNonRetainedSwitchVsTN
         sh:group        l5igm:Level5-IGM;
         sh:name         "ClosedNonRetainedSwitchVsTN";
         sh:order        25;
-        sh:path         rdf:type;
+        sh:path         cim:Switch.open;
         sh:severity     sh:Warning;
         sh:sparql       l5igm:ClosedNonRetainedSwitchVsTNSparql .
 
@@ -435,22 +441,22 @@ l5igm:StaticVarCompensator-controlModeSparql
         sh:select    """
 	      SELECT $this ?value 
         WHERE {
-        BIND(EXISTS{$this cim:RegulatingCondEq.RegulatingControl ?rc} AS ?hasrc).
         OPTIONAL {$this cim:RegulatingCondEq.RegulatingControl/cim:RegulatingControl.mode ?value} .
-		OPTIONAL {$this cim:RegulatingCondEq.RegulatingControl/cim:RequlatingControl.targetValue ?tv} .
+		OPTIONAL {$this cim:RegulatingCondEq.RegulatingControl/cim:RegulatingControl.targetValue ?tv} .
 
-        FILTER (?hasrc=false || (?hasrc=true && ?value=cim:RegulatingControlModeKind.voltage && ?tv<=0)).
+        FILTER (NOT EXISTS { $this cim:RegulatingCondEq.RegulatingControl ?rc } || (?value=cim:RegulatingControlModeKind.voltage && ?tv<=0)).
         }""" .
 
 l5igm:SwitchOpenVsConnected
         rdf:type        sh:PropertyShape;
         sh:description  "The attribute cim:ACDCTerminal.connected shall always be set to true for terminals of cim:Switch or its subclasses.";
         sh:group        l5igm:Level5-IGM;
+        sh:in           ( true );
+        sh:message      "cim:ACDCTerminal.connected is not set to true for a cim:Switch or its subclasses.";
         sh:name         "SwitchOpenVsConnected";
         sh:order        16;
-        sh:path         rdf:type;
-        sh:severity     sh:Violation;
-        sh:sparql       l5igm:Switch-SwitchOpenVsConnectedSparql .
+        sh:path         ( [ sh:inversePath cim:Terminal.ConductingEquipment ] cim:ACDCTerminal.connected );
+        sh:severity     sh:Violation .
 
 l5igm:SwitchTerminals
         rdf:type        sh:NodeShape;
@@ -461,10 +467,6 @@ l5igm:BranchBaseVoltage
         rdf:type        sh:NodeShape;
         sh:property     l5igm:ConductingEquipment.BaseVoltage-BranchBaseVoltage;
         sh:targetClass  cim:ACLineSegment , cim:SeriesCompensator , cim:EquivalentBranch .
-
-l5igm:SMrefPriority  rdf:type  sh:NodeShape;
-        sh:property    l5igm:SynchronousMachine-refPriority;
-        sh:targetNode  cim:TopologicalNode .
 
 l5igm:Level5-IGM  rdf:type  sh:PropertyGroup;
         rdfs:label  "Level5-IGM";
@@ -485,21 +487,28 @@ l5igm:GeneratingUnit-singleActivePowerSlackSparql
         sh:message   " All energised GeneratingUnit objects in the cim:TopologicalIsland have .normalPF equal to 0.";
         sh:prefixes  cim:;
         sh:select    """
-			SELECT  $this ?value ?countm ?countd (COUNT(?npf1) as ?counte) ?countall
+			SELECT DISTINCT $this
         WHERE {
-          ?gu cim:GeneratingUnit.normalPF ?npf1 .
-          BIND ("" AS ?value).
-          FILTER (?npf1=?countm)
-          {
-            SELECT $this (COUNT(DISTINCT ?npf) as ?countd) (MAX(?npf) as ?countm) (COUNT(?npf) as ?countall)
-            WHERE {
-              ?gu cim:GeneratingUnit.normalPF ?npf .
-            }
-            GROUP BY $this datatype(?npf)
+          $this rdf:type cim:TopologicalIsland .
+          FILTER EXISTS {
+            $this cim:TopologicalIsland.TopologicalNodes ?tn .
+            ?sv cim:SvVoltage.TopologicalNode ?tn ;
+                cim:SvVoltage.v ?v .
+            FILTER (?v != 0)
+            ?t (cim:Terminal.TopologicalNode|(cim:Terminal.ConnectivityNode/cim:ConnectivityNode.TopologicalNode)) ?tn ;
+               cim:Terminal.ConductingEquipment/cim:RotatingMachine.GeneratingUnit ?gu .
+          }
+          FILTER NOT EXISTS {
+            $this cim:TopologicalIsland.TopologicalNodes ?tn2 .
+            ?sv2 cim:SvVoltage.TopologicalNode ?tn2 ;
+                 cim:SvVoltage.v ?v2 .
+            FILTER (?v2 != 0)
+            ?t2 (cim:Terminal.TopologicalNode|(cim:Terminal.ConnectivityNode/cim:ConnectivityNode.TopologicalNode)) ?tn2 ;
+                cim:Terminal.ConductingEquipment/cim:RotatingMachine.GeneratingUnit ?gu2 .
+            ?gu2 cim:GeneratingUnit.normalPF ?npf .
+            FILTER (?npf > 0)
           }
         }
-        GROUP BY $this ?value ?countm ?countd datatype(?npf1) ?countall
-        HAVING((?countd<2 && ?countall!=1) || ?countm=0 || ?counte!=1)
       """ .
 
 l5igm:PowerTransformerEnd-BaseVoltageTNvsTransformer
@@ -512,22 +521,10 @@ l5igm:PowerTransformerEnd-BaseVoltageTNvsTransformer
         sh:severity     sh:Violation;
         sh:sparql       l5igm:PowerTransformerEnd-BaseVoltageTNvsTransformerSparql .
 
-l5igm:Switch-SwitchOpenVsConnectedSparql
-        rdf:type     sh:SPARQLConstraint;
-        sh:message   "cim:ACDCTerminal.connected is not set to true for a cim:Switch or its subclasses.";
-        sh:prefixes  cim:;
-        sh:select    """
-			SELECT  $this ?value
-			WHERE {
-			 $this ^cim:Terminal.ConductingEquipment/cim:ACDCTerminal.connected ?value .
-			          
-				FILTER (?value=false) .
-			}""" .
-
 l5igm:ParticipatingGeneratingUnit
         rdf:type       sh:NodeShape;
         sh:property    l5igm:GeneratingUnit-singleActivePowerSlack;
-        sh:targetNode  cim:AllGeneratingUnit .
+        sh:targetClass  cim:TopologicalIsland .
 
 l5igm:ControlOfAnotherIsland
         rdf:type        sh:NodeShape;
@@ -552,7 +549,7 @@ l5igm:GeographicalRegion-BD
         rdf:type        sh:PropertyShape;
         sh:description  "cim:GeographicalRegion-s should be agreed on by modelling authorities and be described in the equipment boundary.";
         sh:group        l5igm:Level5-IGM;
-        sh:in           ( "http://iec.ch/TC57/2013/CIM-schema-cim16#_7e6dab44-5e92-4698-92d1-dcc3421cce1a"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_d81cedde-fca0-4ab8-9604-33e4a8839325"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_5ea19994-4728-41da-a0bb-33f611a7d55f"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_f294c506-4098-4e42-9691-fb97c76beab3"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_78f33e50-e9e6-403b-bf36-5b5e05c8f2c8"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_550dd529-d483-4d7e-a471-e1bb73c6e27e"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_e809c536-0733-41b7-b05f-3e2e43df7351"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_e10adc82-8cbd-4cb7-80f1-d7bd7a461a24"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_ab9ba255-f4d5-4c91-8d94-b6ba512fabc8"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_b0d6289a-b3f6-43d2-b0ba-e165178ca107"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_c9f6846c-0f51-436d-9239-0d2f767130fd"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_89438050-50e5-41d7-a072-ca3e274c5eb5"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_b6110c7c-61e0-4c00-bc62-943461754bff"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_0dcbc64b-d06a-480d-80fd-182c0342680a"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_952f0d5f-cf4d-40fc-932c-1c973266bd90"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_bc1184a7-cb75-4e29-bac9-00071373bb91"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_b59aa20e-f448-4220-8b55-46fd65934b96"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_3a620330-db70-4517-a772-76acf325bde0"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_1bf98b93-0e6b-49c1-bb19-715fad9293ed"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_3ac9d23c-9dc8-4439-932c-5ba139c55ff0"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_3f8d73f3-bc52-4b0f-a568-ea6bf5e65845"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_efcd447e-63ef-48bf-809e-1fde6db75523"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_c816a91b-7214-495c-8cbb-64688a2c687e"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_97376dd1-c711-419d-bb5e-9ef8b142097f"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_df80281f-2bef-4ec6-8f80-4da2da71c6ab"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_1cb34656-b7c8-4d17-9fb1-6fafaa2776eb"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_78963970-8155-4d8d-b799-e70ae5e2145b"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_d383cad8-f2ca-4d3d-84f5-85e4225ea0e7"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_03e204ad-d0cd-4332-b5c2-ee6d269dd5de"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_92db284a-2cd2-47f5-860b-5fa27bf6b03d"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_d9daf137-31d1-449e-9ed7-9ef6d5353bf5"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_60671603-d076-421d-93e0-b6fc1605c239"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_dbc33d3a-d42c-4d3b-a35a-8a6d9a215c10"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_30ddfa7d-8f6c-410c-a9b5-6191282ed6d2"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_38c7f570-0b0a-4d23-ad7c-4f4595b7dfeb"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_833dc8d1-8fdb-4c13-b802-4df1e44a00c9"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_20e593ea-30d4-4b95-99ed-948d5dcc96f6"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_43c59e0c-7cc3-47b5-acd2-37b10e90b732"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_92fb36b2-1ff4-49b6-a103-8b913a132a19"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_37a472a1-997c-4d6e-ad1e-cefefca251b4"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_4d8af96c-5c4d-4cf7-a258-d21b6f563651"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_26e703ad-6460-41d6-9d13-c3ff1f0e095a"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_6908d486-69e4-41d2-a479-9cf1b81178ef"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_64b54ab0-264a-4a3c-afdc-52a05a938225"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_916aee87-9c66-4794-a431-895f756c4d97"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_3ad5710e-7792-473d-8796-86c2ac8b8cc3"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_df31a973-2442-4beb-bbf9-601dc30675c4"^^xsd:anyURI "http://iec.ch/TC57/2013/CIM-schema-cim16#_243c9adc-9d51-420b-983f-d6075a69b0d3"^^xsd:anyURI );
+        sh:in           ( <http://iec.ch/TC57/2013/CIM-schema-cim16#_7e6dab44-5e92-4698-92d1-dcc3421cce1a> <http://iec.ch/TC57/2013/CIM-schema-cim16#_d81cedde-fca0-4ab8-9604-33e4a8839325> <http://iec.ch/TC57/2013/CIM-schema-cim16#_5ea19994-4728-41da-a0bb-33f611a7d55f> <http://iec.ch/TC57/2013/CIM-schema-cim16#_f294c506-4098-4e42-9691-fb97c76beab3> <http://iec.ch/TC57/2013/CIM-schema-cim16#_78f33e50-e9e6-403b-bf36-5b5e05c8f2c8> <http://iec.ch/TC57/2013/CIM-schema-cim16#_550dd529-d483-4d7e-a471-e1bb73c6e27e> <http://iec.ch/TC57/2013/CIM-schema-cim16#_e809c536-0733-41b7-b05f-3e2e43df7351> <http://iec.ch/TC57/2013/CIM-schema-cim16#_e10adc82-8cbd-4cb7-80f1-d7bd7a461a24> <http://iec.ch/TC57/2013/CIM-schema-cim16#_ab9ba255-f4d5-4c91-8d94-b6ba512fabc8> <http://iec.ch/TC57/2013/CIM-schema-cim16#_b0d6289a-b3f6-43d2-b0ba-e165178ca107> <http://iec.ch/TC57/2013/CIM-schema-cim16#_c9f6846c-0f51-436d-9239-0d2f767130fd> <http://iec.ch/TC57/2013/CIM-schema-cim16#_89438050-50e5-41d7-a072-ca3e274c5eb5> <http://iec.ch/TC57/2013/CIM-schema-cim16#_b6110c7c-61e0-4c00-bc62-943461754bff> <http://iec.ch/TC57/2013/CIM-schema-cim16#_0dcbc64b-d06a-480d-80fd-182c0342680a> <http://iec.ch/TC57/2013/CIM-schema-cim16#_952f0d5f-cf4d-40fc-932c-1c973266bd90> <http://iec.ch/TC57/2013/CIM-schema-cim16#_bc1184a7-cb75-4e29-bac9-00071373bb91> <http://iec.ch/TC57/2013/CIM-schema-cim16#_b59aa20e-f448-4220-8b55-46fd65934b96> <http://iec.ch/TC57/2013/CIM-schema-cim16#_3a620330-db70-4517-a772-76acf325bde0> <http://iec.ch/TC57/2013/CIM-schema-cim16#_1bf98b93-0e6b-49c1-bb19-715fad9293ed> <http://iec.ch/TC57/2013/CIM-schema-cim16#_3ac9d23c-9dc8-4439-932c-5ba139c55ff0> <http://iec.ch/TC57/2013/CIM-schema-cim16#_3f8d73f3-bc52-4b0f-a568-ea6bf5e65845> <http://iec.ch/TC57/2013/CIM-schema-cim16#_efcd447e-63ef-48bf-809e-1fde6db75523> <http://iec.ch/TC57/2013/CIM-schema-cim16#_c816a91b-7214-495c-8cbb-64688a2c687e> <http://iec.ch/TC57/2013/CIM-schema-cim16#_97376dd1-c711-419d-bb5e-9ef8b142097f> <http://iec.ch/TC57/2013/CIM-schema-cim16#_df80281f-2bef-4ec6-8f80-4da2da71c6ab> <http://iec.ch/TC57/2013/CIM-schema-cim16#_1cb34656-b7c8-4d17-9fb1-6fafaa2776eb> <http://iec.ch/TC57/2013/CIM-schema-cim16#_78963970-8155-4d8d-b799-e70ae5e2145b> <http://iec.ch/TC57/2013/CIM-schema-cim16#_d383cad8-f2ca-4d3d-84f5-85e4225ea0e7> <http://iec.ch/TC57/2013/CIM-schema-cim16#_03e204ad-d0cd-4332-b5c2-ee6d269dd5de> <http://iec.ch/TC57/2013/CIM-schema-cim16#_92db284a-2cd2-47f5-860b-5fa27bf6b03d> <http://iec.ch/TC57/2013/CIM-schema-cim16#_d9daf137-31d1-449e-9ed7-9ef6d5353bf5> <http://iec.ch/TC57/2013/CIM-schema-cim16#_60671603-d076-421d-93e0-b6fc1605c239> <http://iec.ch/TC57/2013/CIM-schema-cim16#_dbc33d3a-d42c-4d3b-a35a-8a6d9a215c10> <http://iec.ch/TC57/2013/CIM-schema-cim16#_30ddfa7d-8f6c-410c-a9b5-6191282ed6d2> <http://iec.ch/TC57/2013/CIM-schema-cim16#_38c7f570-0b0a-4d23-ad7c-4f4595b7dfeb> <http://iec.ch/TC57/2013/CIM-schema-cim16#_833dc8d1-8fdb-4c13-b802-4df1e44a00c9> <http://iec.ch/TC57/2013/CIM-schema-cim16#_20e593ea-30d4-4b95-99ed-948d5dcc96f6> <http://iec.ch/TC57/2013/CIM-schema-cim16#_43c59e0c-7cc3-47b5-acd2-37b10e90b732> <http://iec.ch/TC57/2013/CIM-schema-cim16#_92fb36b2-1ff4-49b6-a103-8b913a132a19> <http://iec.ch/TC57/2013/CIM-schema-cim16#_37a472a1-997c-4d6e-ad1e-cefefca251b4> <http://iec.ch/TC57/2013/CIM-schema-cim16#_4d8af96c-5c4d-4cf7-a258-d21b6f563651> <http://iec.ch/TC57/2013/CIM-schema-cim16#_26e703ad-6460-41d6-9d13-c3ff1f0e095a> <http://iec.ch/TC57/2013/CIM-schema-cim16#_6908d486-69e4-41d2-a479-9cf1b81178ef> <http://iec.ch/TC57/2013/CIM-schema-cim16#_64b54ab0-264a-4a3c-afdc-52a05a938225> <http://iec.ch/TC57/2013/CIM-schema-cim16#_916aee87-9c66-4794-a431-895f756c4d97> <http://iec.ch/TC57/2013/CIM-schema-cim16#_3ad5710e-7792-473d-8796-86c2ac8b8cc3> <http://iec.ch/TC57/2013/CIM-schema-cim16#_df31a973-2442-4beb-bbf9-601dc30675c4> <http://iec.ch/TC57/2013/CIM-schema-cim16#_243c9adc-9d51-420b-983f-d6075a69b0d3> );
         sh:message      " cim: GeographicalRegion from the boundary is not used.";
         sh:name         "GeographicalRegionBD";
         sh:order        3;
@@ -623,13 +620,13 @@ l5igm:BaseVoltage-BaseVoltageNotInBoundarySparql
         sh:message   "cim:BaseVoltage not in boundary.";
         sh:prefixes  cim:;
         sh:select    """
-			SELECT  $this (COUNT(?value) AS ?counts) (COUNT(DISTINCT ?value) AS ?countd)  ?value
+			SELECT DISTINCT $this ?value
 			WHERE {
-          ?s $PATH ?value.
-		  ?s rdf:type ?bvtype .
+          $this cim:BaseVoltage.nominalVoltage ?value .
+          ?other rdf:type cim:BaseVoltage ;
+                 cim:BaseVoltage.nominalVoltage ?othervalue .
+          FILTER (?other != $this && ?othervalue = ?value) .
 			}
-		GROUP BY $this ?bvtype ?value
-		HAVING(?counts!=?countd)
 		""" .
 
 l5igm:Control-ControlLinkedToTopology
@@ -663,13 +660,12 @@ l5igm:EquivalentInjection-regulationSparql
 		sh:select """
 			SELECT  $this ?value
 			WHERE {
-                $this ^cim:Terminal.ConductingEquipment/cim:Terminal.TopologicalNode/entsoe:TopologicalNode.boundaryPoint true.
-		$this $PATH ?value.
-		$this ^cim:Terminal.ConductingEquipment/cim:Terminal.TopologicalNode/cim:IdentifiedObject.description ?desc .
-
+                $this ^cim:Terminal.ConductingEquipment/cim:Terminal.TopologicalNode ?tn .
+                ?tn entsoe:TopologicalNode.boundaryPoint true .
+        OPTIONAL {$this $PATH ?value}.
         OPTIONAL {$this cim:EquivalentInjection.regulationStatus ?rstatus}.
-        # OPTIONAL {$this cim:EquivalentInjection.regulationTarget ?rtarget}.
-        FILTER ((?value = true || ?rstatus = true) && ?desc != "HVDC") .
+        OPTIONAL {?tn cim:IdentifiedObject.description ?desc}.
+        FILTER ((?value = true || ?rstatus = true) && (!bound(?desc) || ?desc != "HVDC")) .
 
         # FILTER ((?value=true && ?desc!="HVDC" && (!bound(?rstatus) || !bound(?rtarget))) || (?value=false && (bound(?rstatus) || bound(?rtarget)))) .
 			}""" .
@@ -683,10 +679,9 @@ l5igm:TieFlow-SvPowerFlowBranchInstancesSparql
 			WHERE {
         $this $PATH ?value .
 		?value cim:Terminal.ConductingEquipment/rdf:type ?cetype .
-		BIND(EXISTS{?value cim:Terminal.TopologicalNode/entsoe:TopologicalNode.boundaryPoint true} AS ?isbp).
 		OPTIONAL {?value cim:Terminal.TopologicalNode/^cim:Terminal.TopologicalNode/cim:Terminal.ConductingEquipment/cim:Switch.retained ?retained}.
 
-        FILTER (?isbp=false || ?cetype NOT IN (cim:ACLineSegment, cim:PowerTransformer, cim:Switch, cim:LoadBreakSwitch , cim:Breaker, cim:Disconnector , cim:LoadBreakSwitch , cim:Breaker , cim:GroundDisconnector) || (?cetype IN (cim:Switch, cim:LoadBreakSwitch , cim:Breaker, cim:Disconnector , cim:LoadBreakSwitch , cim:Breaker , cim:GroundDisconnector) && bound(?retained) && ?retained=false)).
+        FILTER (NOT EXISTS { ?value cim:Terminal.TopologicalNode/entsoe:TopologicalNode.boundaryPoint true } || NOT EXISTS { ?value cim:Terminal.TopologicalNode/^cim:Terminal.TopologicalNode/cim:Terminal.ConductingEquipment/rdf:type cim:EquivalentInjection } || ?cetype NOT IN (cim:ACLineSegment, cim:PowerTransformer, cim:Switch, cim:LoadBreakSwitch , cim:Breaker, cim:Disconnector , cim:LoadBreakSwitch , cim:Breaker , cim:GroundDisconnector) || (?cetype IN (cim:Switch, cim:LoadBreakSwitch , cim:Breaker, cim:Disconnector , cim:LoadBreakSwitch , cim:Breaker , cim:GroundDisconnector) && bound(?retained) && ?retained=false)).
 			}""" .
 
 l5igm:StaticVarCompensator
@@ -720,14 +715,14 @@ l5igm:SvPowerFlowBranchInstances
         sh:targetClass  cim:TieFlow .
 
 l5igm:SynchronousMachine-refPriority
-        rdf:type        sh:PropertyShape;
+        rdf:type        sh:NodeShape;
         sh:description  "If multiple cim:SynchronousMachine objects have cim:SynchronousMachine.referencePriority equal to 1 (the highest priority), all these cim:SynchronousMachine objects shall be connected to the same cim:TopologicalNode.";
         sh:group        l5igm:Level5-IGM;
         sh:name         "SMrefPriority";
         sh:order        26;
-        sh:path         rdf:type;
         sh:severity     sh:Violation;
-        sh:sparql       l5igm:SynchronousMachine-refPrioritySparql .
+        sh:sparql       l5igm:SynchronousMachine-refPrioritySparql ;
+        sh:targetNode   md:FullModel .
 
 l5igm:SynchronousMachine-SMOperatingModePConsistency
         rdf:type        sh:PropertyShape;
@@ -735,7 +730,7 @@ l5igm:SynchronousMachine-SMOperatingModePConsistency
         sh:group        l5igm:Level5-IGM;
         sh:name         "SMOperatingModePConsistency";
         sh:order        22;
-        sh:path         cim:SynchronousMachine.type;
+        sh:path         cim:SynchronousMachine.operatingMode;
         sh:severity     sh:Violation;
         sh:sparql       l5igm:SynchronousMachine-SMOperatingModePConsistencySparql .
 
