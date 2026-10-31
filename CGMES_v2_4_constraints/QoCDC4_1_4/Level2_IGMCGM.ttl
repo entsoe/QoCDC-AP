@@ -42,34 +42,6 @@ l2com:Level2-IGMCGM  rdf:type  sh:PropertyGroup;
         rdfs:label  "Level2-IGMCGM";
         sh:order    0 .
 
-l2com:AttributeAndRoleValuesSparql
-        rdf:type     sh:SPARQLConstraint;
-        sh:message   "Empty attribute or rdf:resource is present. Subject: {?s}; Attribute: {?p}";
-        sh:prefixes  cim:;
-        sh:select    """
-			SELECT  $this ?value ?s ?p
-			WHERE {
-		  ?s ?p ?value .
-		  BIND(str(?value) AS ?strvalue).
-		  BIND(strlen(?strvalue) AS ?strvaluelen).
-		  BIND(isLiteral(?value) AS ?lit).
-		  FILTER((?lit=true && DATATYPE(?value)!=xsd:string && ?strvaluelen=0) || (?lit=false && strlen(strafter(?strvalue,"#"))=0 && !contains(?strvalue,"urn:uuid:")) || (?lit=false && (strlen(strafter(?strvalue,"urn:uuid:"))=0 || ?strvaluelen=0) && !contains(?strvalue,"#"))).
-			}""" .
-
-l2com:Float  rdf:type  sh:NodeShape;
-        sh:property    l2com:AttributeAndRoleValues;
-        sh:targetNode  cim:AttributeAndRoleValues .
-
-l2com:AttributeAndRoleValues
-        rdf:type        sh:PropertyShape;
-        sh:description  "Attribute and role values appearing in a CIMXML document shall have a value. The rule checks empty attributes that are not of type String. Notes: - Example of empty attribute: [ cim: class. attribute/] or [ cim: class. attribute][/ cim: class. attribute] - Example of empty rdf: resource [ cim: class. attribute rdf: resouce=/], note this is not a valid reference and it is part of rule XMLStructure. Note: the xml angle brackets has been replaced by square parenthesis in above examples.";
-        sh:group        l2com:Level2-IGMCGM;
-        sh:name         "AttributeAndRoleValues";
-        sh:order        1;
-        sh:path         rdf:type;
-        sh:severity     sh:Violation;
-        sh:sparql       l2com:AttributeAndRoleValuesSparql .
-
 l2com:MAS  rdf:type  sh:NodeShape;
         sh:property     l2com:MAS-ps;
         sh:targetClass  md:FullModel , dm:DifferenceModel .
@@ -89,8 +61,7 @@ l2com:MAS-psSparql  rdf:type  sh:SPARQLConstraint;
         sh:select    """
 			SELECT $this ?value
                 WHERE {
-                  $this md:Model.profile ?prof.
-				  $this md:Model.modelingAuthoritySet ?value.
-				  FILTER(str(?prof) NOT IN ("http://entsoe.eu/CIM/StateVariables/4/1")).
+                  $this md:Model.modelingAuthoritySet ?value.
+                  FILTER NOT EXISTS { $this md:Model.profile ?prof . FILTER(str(?prof) = "http://entsoe.eu/CIM/StateVariables/4/1") }
 				  FILTER(str(?value) NOT IN ("http://www.entsoe.eu/OperationalPlanning" , "http://www.entsoe.eu/OperationalPlanning" , "http://www.energinet.dk/west/OperationalPlanning" , "http://www.energinet.dk/east/OperationalPlanning" , "http://www.eirgridgroup.com/ni/OperationalPlanning" , "http://www.elering.ee/OperationalPlanning" , "http://www.energinet.dk/OperationalPlanning" , "http://www.kostt.com/OperationalPlanning" , "http://www.ost.al/OperationalPlanning" , "http://www.apg.at/OperationalPlanning" , "http://www.nosbih.ba/OperationalPlanning" , "http://www.elia.be/OperationalPlanning" , "http://www.eso.bg/OperationalPlanning" , "http://www.swissgrid.ch/OperationalPlanning" , "http://www.cges.me/OperationalPlanning" , "http://www.ems.rs/OperationalPlanning" , "http://www.ceps.cz/OperationalPlanning" , "http://www.transnetbw.de/OperationalPlanning" , "http://www.tennet.eu/de/OperationalPlanning" , "http://www.amprion.net/OperationalPlanning" , "http://www.50hertz.com/OperationalPlanning" , "http://www.ree.es/OperationalPlanning" , "http://www.fingrid.fi/OperationalPlanning" , "http://www.rte-france.com/OperationalPlanning" , "http://www.nationalgrideso.com/OperationalPlanning" , "http://www.admie.gr/OperationalPlanning" , "http://www.hops.hr/OperationalPlanning" , "http://www.mavir.hu/OperationalPlanning" , "http://www.eirgridgroup.com/ie/OperationalPlanning" , "http://www.terna.it/OperationalPlanning" , "http://www.litgrid.eu/OperationalPlanning" , "http://www.creos-net.lu/OperationalPlanning" , "http://www.ast.lv/OperationalPlanning" , "http://www.mepso.com.mk/OperationalPlanning" , "http://www.tennet.eu/nl/OperationalPlanning" , "http://www.statnett.no/OperationalPlanning" , "http://www.pse.pl/OperationalPlanning" , "http://www.ren.pt/OperationalPlanning" , "http://www.transelectrica.ro/OperationalPlanning" , "http://www.svk.se/OperationalPlanning" , "http://www.eles.si/OperationalPlanning" , "http://www.sepsas.sk/OperationalPlanning" , "http://www.teias.gov.tr/OperationalPlanning" , "http://www.ukrenergo.energy.gov.ua/OperationalPlanning")).
 			}""" .
