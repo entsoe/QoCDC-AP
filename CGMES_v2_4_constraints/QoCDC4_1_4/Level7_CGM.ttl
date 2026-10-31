@@ -116,12 +116,12 @@ l7cgm:TopologicalNode-UnpairedTieFlowSparql
                       FILTER (?cetype=cim:EquivalentInjection ) .
                       }
                       GROUP BY $this ?cetype
-                      HAVING(?countei=2)
+                      HAVING(COUNT(?cetype)=2)
             }
             ?tf cim:TieFlow.Terminal/cim:Terminal.TopologicalNode $this.
             ?tf  rdf:type ?tftype .
             FILTER (?tftype=cim:TieFlow ) .
             }
             GROUP BY $this ?tftype
-            HAVING(?counttf<2)
+            HAVING(COUNT(?tftype)<2)
         """ .
