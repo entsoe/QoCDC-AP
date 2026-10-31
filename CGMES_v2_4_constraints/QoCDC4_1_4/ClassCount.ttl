@@ -1,0 +1,59 @@
+@base           <https://entsoe.eu/constraints/ncp/cc> .
+@prefix cconst:  <https://entsoe.eu/constraints/ncp/cc/2.2#> .
+@prefix cim:     <http://iec.ch/TC57/CIM100#> .
+@prefix dcat:    <http://www.w3.org/ns/dcat#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix md:      <http://iec.ch/TC57/61970-552/ModelDescription/1#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+
+cconst:Ontology  rdf:type         owl:Ontology ;
+        dcterms:conformsTo        "urn:iso:std:iec:61970-501:draft:ed-2" , "urn:iso:std:iec:61970-600-2:ed-1" , "urn:iso:std:iec:61970-301:ed-7:amd1" , "file://iec61970cim17v40_iec61968cim13v13a_iec62325cim03v17a.eap" ;
+        dcterms:creator           "ENTSO-E"@en ;
+        dcterms:description       "Class count constraints."@en ;
+        dcterms:identifier        "b47a1c3e-9d62-4f8b-8c07-5a1e2d4f9b23" ;
+        dcterms:issued            "2026-08-18T12:09:21Z"^^xsd:dateTime ;
+        dcterms:language          "en-GB" ;
+        dcterms:modified          "2026-08-18"^^xsd:date ;
+        dcterms:publisher         "ENTSO-E"@en ;
+        dcterms:rights            "Copyright"@en ;
+        dcterms:rightsHolder      "ENTSO-E"@en ;
+        dcterms:title             "Class count constraints"@en ;
+        owl:versionIRI        <https://entsoe.eu/constraints/ncp/cc/2.2> ;
+		dcterms:license        "https://www.apache.org/licenses/LICENSE-2.0" ;
+        owl:versionInfo       "1.0.0"@en ;
+        dcat:theme            "constraints"@en .
+
+
+cconst:ClassesCountGroup  rdf:type  sh:PropertyGroup;
+        rdfs:label  "ClassesCount";
+        sh:order    1 .
+
+cconst:ClassCount-node  rdf:type  sh:NodeShape;
+        sh:property     cconst:ClassCount-property;
+        sh:targetClass  dcat:Dataset, md:FullModel .
+
+cconst:ClassCount-property
+        rdf:type        sh:PropertyShape;
+        sh:description  "Counts instance of classes present in the data graph.";
+        sh:group        cconst:ClassesCountGroup;
+        sh:name         "ClassCount";
+        sh:order        1;
+        sh:path         rdf:type;
+        sh:severity     sh:Info;
+        sh:sparql       cconst:ClassCount-propertySparql .
+
+cconst:ClassCount-propertySparql
+        rdf:type     sh:SPARQLConstraint;
+        sh:message   "The class {?class} appears {?value} times in the data graph.";
+        sh:prefixes  cim:;
+        sh:select    """
+            SELECT $this ?class (COUNT(?instance) AS ?value)
+            WHERE {
+                    ?instance rdf:type ?class .
+                   }
+            GROUP BY $this ?class
+             """ .
