@@ -82,16 +82,15 @@ l6cgm:KirchhoffsFirstLawCGMSparql
                     cim:SvPowerFlow.Terminal ?t .
               FILTER NOT EXISTS {
                 ?t cim:Terminal.ConductingEquipment ?ce .
-              { ?ce a cim:Switch } UNION { ?ce a cim:Breaker }
+              # any cim:Switch subclass with Switch.retained false
                   ?ce cim:Switch.retained false .
               }
             }
             GROUP BY $this
           }
 
-          BIND(EXISTS{$this ^cim:SvInjection.TopologicalNode ?svi} AS ?hassvi).
-
-          FILTER( (?hassvi=false && (ABS(?sumP) > 0.5 || ABS(?sumQ) > 0.5))).
+          FILTER NOT EXISTS { ?svi cim:SvInjection.TopologicalNode $this }
+          FILTER(ABS(?sumP) > 0.5 || ABS(?sumQ) > 0.5).
         }
     """ .
 
@@ -112,16 +111,15 @@ l6cgm:KirchhoffsFirstLawCGMrelaxedSparql
                     cim:SvPowerFlow.Terminal ?t .
               FILTER NOT EXISTS {
                 ?t cim:Terminal.ConductingEquipment ?ce .
-                  { ?ce a cim:Switch } UNION { ?ce a cim:Breaker }
+                  # any cim:Switch subclass with Switch.retained false
                    ?ce cim:Switch.retained false .
               }
             }
             GROUP BY $this
           }
 
-          BIND(EXISTS{$this ^cim:SvInjection.TopologicalNode ?svi} AS ?hassvi).
-
-          FILTER( (?hassvi=false && ((ABS(?sumP) > 0.1 && ABS(?sumP) < 0.5) || (ABS(?sumQ) > 0.1 && ABS(?sumQ) < 0.5)))).        
+          FILTER NOT EXISTS { ?svi cim:SvInjection.TopologicalNode $this }
+          FILTER((ABS(?sumP) >= 0.1 && ABS(?sumP) <= 0.5) || (ABS(?sumQ) >= 0.1 && ABS(?sumQ) <= 0.5)).
         }
     """  .
 
