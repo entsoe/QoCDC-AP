@@ -46,8 +46,12 @@ l6com:EquivalentInjection.p-limitsSparql
         $this $PATH ?value .
         $this cim:EquivalentInjection.maxP ?maxp . 
         $this cim:EquivalentInjection.minP ?minp .
-		OPTIONAL {$this ^cim:Terminal.ConductingEquipment/cim:Terminal.TopologicalNode/entsoe:TopologicalNode.boundaryPoint ?bp}.
-        FILTER (!bound(?bp) && (((-?value>?maxp || -?value<?minp) && ?value<0) || ((-?value<?maxp || -?value>?minp) && ?value>0 && ?maxp<0 && ?minp<0 && ?maxp<?minp) || ((-?value>?maxp || -?value<?minp) && ?value>0 && ?maxp>0 && ?minp>0 && ?maxp>?minp) || ((?value>?maxp || ?value<?minp) && ?value=0))) .        
+        FILTER NOT EXISTS {
+          ?boundaryTerminal cim:Terminal.ConductingEquipment $this ;
+                            cim:Terminal.TopologicalNode ?topologicalNode .
+          ?topologicalNode entsoe:TopologicalNode.boundaryPoint true
+        }
+        FILTER (?value != 0 && ((0 - ?value) > ?maxp || (0 - ?value) < ?minp)) .
 			}""" .
 
 l6com:RotatingMachine.p-limitsSparql
@@ -98,9 +102,6 @@ l6com:TapChanger-ContinuousControlSparql
           $this cim:TapChanger.TapChangerControl ?value  .
 		  ?value cim:RegulatingControl.discrete false .
           ?value cim:RegulatingControl.enabled true .
-          BIND(EXISTS{$this cim:TapChanger.TapChangerControl ?valuecheck} AS ?rcexists).
-		  
-          FILTER (?rcexists=true ).
         }""" .
 
 l6com:ExternalNetworkInjection.q-limits
@@ -168,7 +169,9 @@ l6com:EquivalentInjection.q-EIReactivePowerInfeedDiffWSparql
 	      SELECT $this  ?value ?q
         WHERE {
           $this cim:EquivalentInjection.q ?value .
-          $this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.q ?q  .
+          ?terminal cim:Terminal.ConductingEquipment $this .
+          ?svPowerFlow cim:SvPowerFlow.Terminal ?terminal ;
+                       cim:SvPowerFlow.q ?q .
 
 		  FILTER (abs(?q-?value)>50 ).
         }""" .
@@ -259,7 +262,7 @@ l6com:LinearShuntCompensator-ShuntQSparql
 		  $this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.q ?q .
           $this ^cim:Terminal.ConductingEquipment/cim:Terminal.TopologicalNode/^cim:SvVoltage.TopologicalNode/cim:SvVoltage.v ?v .
 
-          FILTER (?v!=0 && abs(abs(?q)-abs(?scsections*?bpersec*?v*?v))>1) .
+          FILTER (?v!=0 && abs(?q + ?scsections*?bpersec*?v*?v)>1) .
         } """ .
 
 l6com:EnergyConsumer.p-LoadActivePowerInfeedDiffWSparql
@@ -270,7 +273,9 @@ l6com:EnergyConsumer.p-LoadActivePowerInfeedDiffWSparql
 	      SELECT $this  ?value ?p
         WHERE {
           $this cim:EnergyConsumer.p ?value .
-          $this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.p ?p  .
+          ?terminal cim:Terminal.ConductingEquipment $this .
+          ?svPowerFlow cim:SvPowerFlow.Terminal ?terminal ;
+                       cim:SvPowerFlow.p ?p .
           FILTER (abs(?p-?value)>10).
         }""" .
 
@@ -311,9 +316,9 @@ l6com:TopologicalNode-EnergizedBoundaryTNSparql
 		?ce rdf:type cim:EquivalentInjection .
 		?ce cim:EquivalentInjection.p ?p .
 		?ce cim:EquivalentInjection.q ?q . 
-		$this ^cim:SvVoltage.TopologicalNode/cim:SvVoltage.v ?value .
+		OPTIONAL {$this ^cim:SvVoltage.TopologicalNode/cim:SvVoltage.v ?value} .
 
-        FILTER ( ?value=0 && (?p!=0 || ?q!=0)).
+        FILTER ( (!bound(?value) || ?value=0) && (?p!=0 || ?q!=0)).
 
 			}""" .
 
@@ -339,7 +344,9 @@ l6com:ExternalNetworkInjection.p-ENIActivePowerInfeedDiffWSparql
 	      SELECT $this  ?value ?p
         WHERE {
           $this cim:ExternalNetworkInjection.p ?value .
-          $this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.p ?p  .
+          ?terminal cim:Terminal.ConductingEquipment $this .
+          ?svPowerFlow cim:SvPowerFlow.Terminal ?terminal ;
+                       cim:SvPowerFlow.p ?p .
                
           FILTER (abs(?p-?value)>10).
         }""" .
@@ -445,7 +452,7 @@ l6com:ControlArea.netInterchange-NetInterchange1Sparql
           }
         GROUP BY $this ?termtype
         }
-        FILTER ((ABS(?value-?sump)>50) || (bound(?ptol) && ABS(?value-?sump)>?ptol)) .
+        FILTER (ABS(?value-?sump) > COALESCE(?ptol, 50)) .
 			} """ .
 
 l6com:RegulatingControl-samePointSparql
@@ -476,7 +483,7 @@ l6com:RegulatingControl-samePointSparql
                 cim:RegulatingControl.targetValue ?val .
         }
         GROUP BY $this
-        HAVING (COUNT(DISTINCT xsd:float(?val)) > 1)
+        HAVING (MIN(xsd:float(?val)) != MAX(xsd:float(?val)))
     """ .
 
 l6com:TapChanger-ContinuousControl
@@ -496,11 +503,11 @@ l6com:SvShuntCompensatorSections.sections-SV__4Sparql
         sh:select    """
 			SELECT  DISTINCT $this ?value ?svshuntsec
 			WHERE {
-        $this cim:RegulatingCondEq.controlEnabled ?controlen .
+        OPTIONAL {$this cim:RegulatingCondEq.controlEnabled ?controlen} .
         $this  ^cim:SvShuntCompensatorSections.ShuntCompensator/cim:SvShuntCompensatorSections.sections  ?svshuntsec .
         $this $PATH ?value .
         OPTIONAL {$this  cim:RegulatingCondEq.RegulatingControl/cim:RegulatingControl.enabled ?rcenabled} .
-        FILTER ((?controlen=false && ?svshuntsec!=?value) || (bound(?rcenabled) && ?rcenabled=false && ?svshuntsec!=?value)   ).
+        FILTER ((!bound(?rcenabled) || ?rcenabled=false) && ?svshuntsec!=?value).
 			}""" .
 
 l6com:EnergySource.activePower-DERActivePowerInfeedDiffWSparql
@@ -511,7 +518,9 @@ l6com:EnergySource.activePower-DERActivePowerInfeedDiffWSparql
 	      SELECT $this  ?value ?p
         WHERE {
           $this cim:EnergySource.activePower ?value .
-          $this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.p ?p  .
+          ?terminal cim:Terminal.ConductingEquipment $this .
+          ?svPowerFlow cim:SvPowerFlow.Terminal ?terminal ;
+                       cim:SvPowerFlow.p ?p .
                
           FILTER (abs(?p-?value)>10).
         }""" .
@@ -540,14 +549,19 @@ l6com:SvVoltage.v-limitsSparql
         $this cim:SvVoltage.v ?value .
         $this cim:SvVoltage.TopologicalNode/^cim:Terminal.TopologicalNode ?term .
         
-        ?limith cim:OperationalLimit.OperationalLimitSet/cim:OperationalLimitSet.Terminal ?term .
-        ?limith cim:OperationalLimit.OperationalLimitType/entsoe:OperationalLimitType.limitType entsoe:LimitTypeKind.highVoltage .
-		?limith cim:VoltageLimit.value ?vhigh .
-		?limitl cim:OperationalLimit.OperationalLimitSet/cim:OperationalLimitSet.Terminal ?term .
-        ?limitl cim:OperationalLimit.OperationalLimitType/entsoe:OperationalLimitType.limitType entsoe:LimitTypeKind.lowVoltage .
-        ?limitl cim:VoltageLimit.value ?vlow .
+        {
+          ?limith cim:OperationalLimit.OperationalLimitSet/cim:OperationalLimitSet.Terminal ?term .
+          ?limith cim:OperationalLimit.OperationalLimitType/entsoe:OperationalLimitType.limitType entsoe:LimitTypeKind.highVoltage .
+          ?limith cim:VoltageLimit.value ?vhigh .
 
-        FILTER ( ?value!=0 && (?value>?vhigh || ?value<?vlow)).
+        } UNION {
+          ?limitl cim:OperationalLimit.OperationalLimitSet/cim:OperationalLimitSet.Terminal ?term .
+          ?limitl cim:OperationalLimit.OperationalLimitType/entsoe:OperationalLimitType.limitType entsoe:LimitTypeKind.lowVoltage .
+          ?limitl cim:VoltageLimit.value ?vlow .
+
+        }
+
+        FILTER ( ?value!=0 && ((bound(?vhigh) && ?value>?vhigh) || (bound(?vlow) && ?value<?vlow))).
 			}""" .
 
 l6com:ControlArea.netInterchange-NetInterchange2
@@ -568,7 +582,9 @@ l6com:RotatingMachine.q-GenReactivePowerInfeedDiffWSparql
 	      SELECT $this  ?value ?q
         WHERE {
           $this cim:RotatingMachine.q ?value .
-          $this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.q ?q  .
+          ?terminal cim:Terminal.ConductingEquipment $this .
+          ?svPowerFlow cim:SvPowerFlow.Terminal ?terminal ;
+                       cim:SvPowerFlow.q ?q .
 
           FILTER (abs(?q-?value)>50).
         }""" .
@@ -619,7 +635,7 @@ l6com:RegulatingControl-VoltageTargetAndDeadbandAtTN
         sh:group        l6com:Level6-IGMCGM;
         sh:name         "VoltageTargetAndDeadbandAtTN";
         sh:order        35;
-        sh:path         cim:RegulatingControl.targetDeadband;
+        sh:path         rdf:type;
         sh:severity     sh:Warning;
         sh:sparql       l6com:RegulatingControl-VoltageTargetAndDeadbandAtTNSparql .
 
@@ -716,7 +732,9 @@ l6com:EnergyConsumer.q-LoadReactivePowerInfeedDiffWSparql
 	      SELECT $this  ?value ?q
         WHERE {
           $this cim:EnergyConsumer.q ?value .
-          $this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.q ?q  .
+          ?terminal cim:Terminal.ConductingEquipment $this .
+          ?svPowerFlow cim:SvPowerFlow.Terminal ?terminal ;
+                       cim:SvPowerFlow.q ?q .
                
           FILTER (abs(?q-?value)>50).
         }""" .
@@ -729,7 +747,9 @@ l6com:RotatingMachine.p-GenActivePowerInfeedDiffWSparql
 	      SELECT $this  ?value ?p
         WHERE {
           $this cim:RotatingMachine.p ?value .
-          $this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.p ?p  .
+          ?terminal cim:Terminal.ConductingEquipment $this .
+          ?svPowerFlow cim:SvPowerFlow.Terminal ?terminal ;
+                       cim:SvPowerFlow.p ?p .
                
           FILTER (abs(?p-?value)>10).
         }""" .
@@ -744,9 +764,6 @@ l6com:ShuntCompensator-ContinuousControlSparql
           $this cim:RegulatingCondEq.RegulatingControl ?value  .
 		  ?value cim:RegulatingControl.discrete false .
           ?value cim:RegulatingControl.enabled true .
-          BIND(EXISTS{$this cim:RegulatingCondEq.RegulatingControl ?valuecheck} AS ?rcexists).
-        
-          FILTER (?rcexists=true ).
         }""" .
 
 l6com:SvVoltage  rdf:type  sh:NodeShape;
@@ -783,8 +800,12 @@ l6com:EquivalentInjection.q-limitsSparql
         $this $PATH ?value .
         $this cim:EquivalentInjection.maxQ ?maxq . 
         $this cim:EquivalentInjection.minQ ?minq .
-		OPTIONAL {$this ^cim:Terminal.ConductingEquipment/cim:Terminal.TopologicalNode/entsoe:TopologicalNode.boundaryPoint ?bp}.
-        FILTER (!bound(?bp) && (((-?value>?maxq || -?value<?minq) && ?value<0) || ((-?value<?maxq || -?value>?minq) && ?value>0 && ?maxq<0 && ?minq<0 && ?maxq<?minq) || ((-?value>?maxp || -?value<?minp) && ?value>0 && ?maxp>0 && ?minp>0 && ?maxp>?minp) || ((?value>?maxq || ?value<?minq) && ?value=0))) .        
+        FILTER NOT EXISTS {
+          ?boundaryTerminal cim:Terminal.ConductingEquipment $this ;
+                            cim:Terminal.TopologicalNode ?topologicalNode .
+          ?topologicalNode entsoe:TopologicalNode.boundaryPoint true
+        }
+        FILTER ((0 - ?value) > ?maxq || (0 - ?value) < ?minq) .
 			}""" .
 
 l6com:EquivalentInjection.q-EIReactivePowerInfeedDiffW
@@ -804,8 +825,7 @@ l6com:SvShuntCompensatorSections-SV__4Sparql
         sh:select    """
 			SELECT  DISTINCT $this ?value 
 			WHERE {
-        OPTIONAL {$this  ^cim:SvShuntCompensatorSections.ShuntCompensator  ?svshuntcompsec} .
-        FILTER (!bound(?svshuntcompsec)  ).
+        FILTER NOT EXISTS { ?svshuntcompsec cim:SvShuntCompensatorSections.ShuntCompensator $this }
 			}""" .
 
 l6com:SvInjection-SvInjectionLimitSparql
@@ -817,7 +837,7 @@ l6com:SvInjection-SvInjectionLimitSparql
         WHERE {
         $this cim:SvInjection.pInjection ?p .
         $this cim:SvInjection.qInjection ?q .
-        FILTER (abs(?p) > 0.1 || abs(?q)>0.1).
+        FILTER (abs(?p) <= "0.1"^^xsd:float && abs(?q) <= "0.1"^^xsd:float).
         }""" .
 
 l6com:ExternalNetworkInjection.q-ENIReactivePowerInfeedDiffWSparql
@@ -828,7 +848,9 @@ l6com:ExternalNetworkInjection.q-ENIReactivePowerInfeedDiffWSparql
 	      SELECT $this  ?value ?q
         WHERE {
           $this cim:ExternalNetworkInjection.q ?value .
-          $this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.q ?q  .
+          ?terminal cim:Terminal.ConductingEquipment $this .
+          ?svPowerFlow cim:SvPowerFlow.Terminal ?terminal ;
+                       cim:SvPowerFlow.q ?q .
                
           FILTER (abs(?q-?value)>50).
         }""" .
@@ -975,7 +997,9 @@ l6com:EnergySource.reactivePower-DERReactivePowerInfeedDiffWSparql
 	      SELECT $this  ?value ?q
         WHERE {
           $this cim:EnergySource.reactivePower ?value .
-          $this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.q ?q  .
+          ?terminal cim:Terminal.ConductingEquipment $this .
+          ?svPowerFlow cim:SvPowerFlow.Terminal ?terminal ;
+                       cim:SvPowerFlow.q ?q .
           FILTER (abs(?q-?value)>50).
         }""" .
 
@@ -1042,10 +1066,15 @@ l6com:EquivalentInjection.p-EIActivePowerInfeedDiffWSparql
 	      SELECT $this  ?value ?p
         WHERE {
           $this cim:EquivalentInjection.p ?value .
-          $this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.p ?p  .
-		  OPTIONAL {$this ^cim:Terminal.ConductingEquipment/cim:Terminal.TopologicalNode/entsoe:TopologicalNode.boundaryPoint ?bp}.
-               
-          FILTER (abs(?p-?value)>10 && !bound(?bp)).
+          ?terminal cim:Terminal.ConductingEquipment $this .
+          ?svPowerFlow cim:SvPowerFlow.Terminal ?terminal ;
+                       cim:SvPowerFlow.p ?p .
+          FILTER NOT EXISTS {
+            ?boundaryTerminal cim:Terminal.ConductingEquipment $this ;
+                              cim:Terminal.TopologicalNode ?topologicalNode .
+            ?topologicalNode entsoe:TopologicalNode.boundaryPoint true
+          }
+          FILTER (abs(?p-?value)>10).
         }""" .
 
 l6com:SvTapStepRequiredSvTapStep
@@ -1059,23 +1088,22 @@ l6com:RotatingMachine-pAndQcapabilityCurvePSparql
         sh:prefixes  cim:;
         sh:select    """
 			SELECT  $this ?value 
-			WHERE {
+        WHERE {
         $this cim:RotatingMachine.p ?value .
-        OPTIONAL {$this cim:SynchronousMachine.InitialReactiveCapabilityCurve ?rcc } .
-               
+
         {
         SELECT $this (MAX(?xvalue) AS ?maxxvalue)  (MIN(?xvalue) AS ?minxvalue)
           WHERE {
-            OPTIONAL {?rcc1 ^cim:SynchronousMachine.InitialReactiveCapabilityCurve $this } .
-            ?rcc1 ^cim:CurveData.Curve ?curvedata .
-            ?curvedata rdf:type ?cdtype .
+            $this cim:SynchronousMachine.InitialReactiveCapabilityCurve ?rcc .
+            ?curvedata cim:CurveData.Curve ?rcc .
+            ?curvedata rdf:type cim:CurveData .
             ?curvedata cim:CurveData.xvalue ?xvalue .
-            FILTER (bound(?rcc1) && ?cdtype=cim:CurveData ) .
           }
-          GROUP BY $this ?cdtype
+          GROUP BY $this
         }
 
-        FILTER ( bound(?rcc) && !(-?value>=?minxvalue && -?value<=?maxxvalue)).
+        $this cim:RotatingMachine.q ?qvalue .
+        FILTER(?value != 0 && ?qvalue != 0 && !((0 - ?value)>=?minxvalue && (0 - ?value)<=?maxxvalue)).
 			}""" .
 
 l6com:ExternalNetworkInjection.q-limitsSparql
@@ -1088,7 +1116,7 @@ l6com:ExternalNetworkInjection.q-limitsSparql
         $this $PATH ?value .
         $this cim:ExternalNetworkInjection.maxQ ?maxq . 
         $this cim:ExternalNetworkInjection.minQ ?minq .
-        FILTER (((-?value>?maxq || -?value<?minq) && ?value<0) || ((-?value<?maxq || -?value>?minq) && ?value>0 && ?maxq<0 && ?minq<0 && ?maxq<?minq) || ((-?value>?maxq || -?value<?minq) && ?value>0 && ?maxq>0 && ?minq>0 && ?maxq>?minq) ||  ((?value>?maxq || ?value<?minq) && ?value=0)) .        
+        FILTER ((0 - ?value) > ?maxq || (0 - ?value) < ?minq) .
 			}""" .
 
 l6com:ShuntQ  rdf:type  sh:NodeShape;
@@ -1101,24 +1129,30 @@ l6com:RotatingMachine-pAndQcapabilityCurveQSparql
         sh:prefixes  cim:;
         sh:select    """
 			SELECT  $this ?value 
-			WHERE {
-        $this cim:RotatingMachine.q ?value .
-        OPTIONAL {$this cim:SynchronousMachine.InitialReactiveCapabilityCurve ?rcc } .
-               
-        {
-        SELECT $this (MAX(?y2value) AS ?my2value)  (MIN(?y1value) AS ?my1value)
-          WHERE {
-            OPTIONAL {?rcc1 ^cim:SynchronousMachine.InitialReactiveCapabilityCurve $this } .
-            ?rcc1 ^cim:CurveData.Curve ?curvedata .
-            ?curvedata rdf:type ?cdtype .
-            ?curvedata cim:CurveData.y1value ?y1value .
-            ?curvedata cim:CurveData.y2value ?y2value .
-            FILTER (bound(?rcc1) && ?cdtype=cim:CurveData ) .
-          }
-          GROUP BY $this ?cdtype
-        }
-
-        FILTER ( bound(?rcc) && !(-?value>=?my1value && -?value<=?my2value)).
+        WHERE {
+        $this cim:RotatingMachine.q ?value ;
+              cim:RotatingMachine.p ?p ;
+              cim:SynchronousMachine.InitialReactiveCapabilityCurve ?rcc .
+        FILTER (?value != 0 && ?p != 0)
+        BIND ((0 - ?p) AS ?x)
+        # nearest curve point at or below -p
+        ?c1 cim:CurveData.Curve ?rcc ;
+            cim:CurveData.xvalue ?x1 ;
+            cim:CurveData.y1value ?a1 ;
+            cim:CurveData.y2value ?b1 .
+        FILTER (?x1 <= ?x)
+        FILTER NOT EXISTS { ?c3 cim:CurveData.Curve ?rcc ; cim:CurveData.xvalue ?x3 . FILTER (?x3 <= ?x && ?x3 > ?x1) }
+        # nearest curve point at or above -p
+        ?c2 cim:CurveData.Curve ?rcc ;
+            cim:CurveData.xvalue ?x2 ;
+            cim:CurveData.y1value ?a2 ;
+            cim:CurveData.y2value ?b2 .
+        FILTER (?x2 >= ?x)
+        FILTER NOT EXISTS { ?c4 cim:CurveData.Curve ?rcc ; cim:CurveData.xvalue ?x4 . FILTER (?x4 >= ?x && ?x4 < ?x2) }
+        # linear interpolation of q_rcc_min (y1) and q_rcc_max (y2)
+        BIND (IF(?x2 = ?x1, ?a1, ?a1 + (?a2 - ?a1) * (?x - ?x1) / (?x2 - ?x1)) AS ?qmin)
+        BIND (IF(?x2 = ?x1, ?b1, ?b1 + (?b2 - ?b1) * (?x - ?x1) / (?x2 - ?x1)) AS ?qmax)
+        FILTER ((0 - ?value) < ?qmin || (0 - ?value) > ?qmax).
 			}""" .
 
 l6com:VoltageTargetAndDeadbandAtTN
@@ -1148,10 +1182,10 @@ l6com:RotatingMachine.q-limitsSparql
 			WHERE {
         $this $PATH ?value .
         $this cim:RotatingMachine.p ?valuep .
-        $this cim:SynchronousMachine.maxQ ?maxq.
-        $this cim:SynchronousMachine.minQ ?minq.
+        OPTIONAL {$this cim:SynchronousMachine.maxQ ?maxq}.
+        OPTIONAL {$this cim:SynchronousMachine.minQ ?minq}.
 
-		FILTER ( ?value!=0 && ?valuep!=0 && (-?value>?maxq || -?value<?minq)) .
+		FILTER ( ?value!=0 && ?valuep!=0 && ((bound(?maxq) && (0 - ?value)>?maxq) || (bound(?minq) && (0 - ?value)<?minq))) .
 			}""" .
 
 l6com:SvShuntCompensatorSectionsRequiredSvSCSections
@@ -1169,7 +1203,7 @@ l6com:ExternalNetworkInjection.p-limitsSparql
         $this $PATH ?value .
         $this cim:ExternalNetworkInjection.maxP ?maxp . 
         $this cim:ExternalNetworkInjection.minP ?minp .
-        FILTER (((-?value>?maxp || -?value<?minp) && ?value<0) || ((-?value<?maxp || -?value>?minp) && ?value>0 && ?maxp<0 && ?minp<0 && ?maxp<?minp) || ((-?value>?maxp || -?value<?minp) && ?value>0 && ?maxp>0 && ?minp>0 && ?maxp>?minp) || ((?value>?maxp || ?value<?minp) && ?value=0)) .        
+        FILTER (?value != 0 && ((0 - ?value) > ?maxp || (0 - ?value) < ?minp)) .
 			}""" .
 
 l6com:VoltageTargetsAtTN
@@ -1232,7 +1266,7 @@ l6com:SynchronousMachineSumP
 l6com:RotatingMachine.p-GenActivePowerInfeedDiffE
         a               sh:PropertyShape ;
         sh:sparql       l6com:RotatingMachine.p-GenActivePowerInfeedDiffESparql ;
-        sh:path         rdf:type ;
+        sh:path         [ sh:zeroOrOnePath rdf:type ] ;
         sh:description  "The aggregated sum of the values of cim:RotatingMachine.p shall not deviate more than 200 MW from the aggregated sum of the values of cim:SvPowerFlow.p for the terminals connected to synchronous machines. Note that disconnected synchronous machines should have zero values in SSH." ;
         sh:name         "GenActivePowerInfeedDiffE" ;
         sh:group        l6com:Level6-IGMCGM ;
@@ -1253,7 +1287,7 @@ l6com:RotatingMachine.p-GenActivePowerInfeedDiffESparql
           FILTER (?smtype=cim:SynchronousMachine) .
         }
         GROUP BY $this ?smtype
-        HAVING (abs(?sump-?value)>200)
+        HAVING (abs(SUM(?p)-SUM(?rmp))>200)
         """ .
 
 l6com:EnergySource.activePower-DERActivePowerInfeedDiffE
@@ -1281,7 +1315,7 @@ l6com:EnergySource.activePower-DERActivePowerInfeedDiffESparql
           FILTER (?smtype=cim:EnergySource) .
         }
         GROUP BY $this ?smtype
-        HAVING (abs(?sump-?value)>200)
+        HAVING (abs(SUM(?p)-SUM(?rmp))>200)
         """ .
 
 l6com:EnergyConsumer.p-LoadActivePowerInfeedDiffE
@@ -1305,10 +1339,10 @@ l6com:EnergyConsumer.p-LoadActivePowerInfeedDiffESparql
           $this cim:EnergyConsumer.p ?rmp .
           $this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.p ?p  .
           $this rdf:type ?smtype .
-          FILTER (?smtype=cim:EnergyConsumer) .
+          FILTER (?smtype IN (cim:EnergyConsumer, cim:ConformLoad, cim:NonConformLoad, cim:StationSupply)) .
         }
         GROUP BY $this ?smtype
-        HAVING (abs(?sump-?value)>200)
+        HAVING (abs(SUM(?p)-SUM(?rmp))>200)
         """ .
 
 l6com:ExternalNetworkInjection.p-ENIActivePowerInfeedDiffE
@@ -1336,7 +1370,7 @@ l6com:ExternalNetworkInjection.p-ENIActivePowerInfeedDiffESparql
           FILTER (?smtype=cim:ExternalNetworkInjection) .
         }
         GROUP BY $this ?smtype
-        HAVING (abs(?sump-?value)>200)
+        HAVING (abs(SUM(?p)-SUM(?rmp))>200)
         """ .
 
 l6com:EquivalentInjection.p-EIActivePowerInfeedDiffE
@@ -1358,14 +1392,17 @@ l6com:EquivalentInjection.p-EIActivePowerInfeedDiffESparql
 	      SELECT $this (SUM(?rmp) AS ?value) (SUM(?p) AS ?sump)
         WHERE {
           $this cim:EquivalentInjection.p ?rmp .
-          $this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.p ?p  .
-          $this rdf:type ?smtype .
-
-		  BIND(EXISTS{$this ^cim:Terminal.ConductingEquipment/cim:Terminal.TopologicalNode/entsoe:TopologicalNode.boundaryPoint true} AS ?hasbp).
-          FILTER (?smtype=cim:EquivalentInjection && ?hasbp=false) .
+          ?terminal cim:Terminal.ConductingEquipment $this .
+          ?svPowerFlow cim:SvPowerFlow.Terminal ?terminal ;
+                       cim:SvPowerFlow.p ?p .
+          FILTER NOT EXISTS {
+            ?boundaryTerminal cim:Terminal.ConductingEquipment $this ;
+                              cim:Terminal.TopologicalNode ?topologicalNode .
+            ?topologicalNode entsoe:TopologicalNode.boundaryPoint true
+          }
         }
-        GROUP BY $this ?smtype
-        HAVING (abs(?sump-?value)>200)
+        GROUP BY $this
+        HAVING (abs(SUM(?p)-SUM(?rmp))>200)
         """ .
 
 l6com:TopologicalNode-FakeVoltage
