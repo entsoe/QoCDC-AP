@@ -25,10 +25,12 @@ main:Ontology  rdf:type         owl:Ontology ;
         owl:versionInfo       "1.0.0"@en ;
         dcat:theme            "constraints"@en .
 
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//SWE_BusinessConstraints//PrefixDeclaration.ttl> .
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//SWE_BusinessConstraints//ClassCount.ttl> .
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//CGMES24//EquipmentCoreProfile.ttl> .
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//CGMES24//ENTSO-E_AP//FileHeaderProfile.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/PrefixDeclaration.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/ClassCount.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/EnhancedAppLibRDFS24/EquipmentCoreProfile.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/EnhancedAppLibRDFS24/FileHeaderProfile.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/Level2_Header.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/Level2_IGMCGM_Single.ttl> .
 
 eq:ConductingEquipment.BaseVoltage-valueType
         a               sh:PropertyShape ;

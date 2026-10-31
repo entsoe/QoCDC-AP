@@ -26,21 +26,20 @@ main:Ontology  rdf:type         owl:Ontology ;
         owl:versionInfo       "1.0.0"@en ;
         dcat:theme            "constraints"@en .
 
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//SWE_BusinessConstraints//PrefixDeclaration.ttl> .
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//QoCDC_v414//Level6_IGMCGM.ttl> .
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//QoCDC_v414//Level7_IGM.ttl> .
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//QoCDC_v414//Level7_IGMCGM.ttl> .
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//QoCDC_v414//Level8_IGMCGM.ttl> .
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//QoCDC_v414//Level2_Header.ttl> .
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//QoCDC_v414//Level2_IGM.ttl> .
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//QoCDC_v414//Level2_IGMCGM.ttl> .
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//QoCDC_v414//Level3_IGM.ttl> .
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//QoCDC_v414//Level3_IGMCGM.ttl> .
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//QoCDC_v414//Level4_IGM.ttl> .
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//QoCDC_v414//Level4_IGMCGM.ttl> .
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//QoCDC_v414//Level5_IGM.ttl> .
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//QoCDC_v414//Level5_IGMCGM.ttl> .
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//QoCDC_v414//Level6_IGM.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/PrefixDeclaration.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/Level6_IGMCGM.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/Level7_IGM.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/Level7_IGMCGM.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/Level8_IGMCGM.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/Level2_IGM.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/Level2_IGMCGM.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/Level3_IGM.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/Level3_IGMCGM.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/Level4_IGM.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/Level4_IGMCGM.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/Level5_IGM.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/Level5_IGMCGM.ttl> .
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/Level6_IGM.ttl> .
 
 l4igm:EQDIFFOperationalLimit-property
         a               sh:PropertyShape ;

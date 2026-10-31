@@ -25,34 +25,7 @@ main:Ontology  rdf:type         owl:Ontology ;
         owl:versionInfo       "1.0.0"@en ;
         dcat:theme            "constraints"@en .
 
-main:   owl:imports  <C://SHACL-Constraints//Coreso_SWE//SWE_BusinessConstraints//PrefixDeclaration.ttl> .
-
-cim:    rdf:type     owl:Ontology;
-        owl:imports  sh:;
-        sh:declare   [ rdf:type      sh:PrefixDeclaration;
-                       sh:namespace  "http://iec.ch/TC57/CIM100#"^^xsd:anyURI;
-                       sh:prefix     "cim"
-                     ];
-        sh:declare   [ rdf:type      sh:PrefixDeclaration;
-                       sh:namespace  "http://www.w3.org/1999/02/22-rdf-syntax-ns#"^^xsd:anyURI;
-                       sh:prefix     "rdf"
-                     ];
-        sh:declare   [ rdf:type      sh:PrefixDeclaration;
-                       sh:namespace  "http://iec.ch/TC57/61970-552/ModelDescription/1#"^^xsd:anyURI;
-                       sh:prefix     "md"
-                     ];
-        sh:declare   [ rdf:type      sh:PrefixDeclaration;
-                       sh:namespace  "http://iec.ch/TC57/61970-552/DifferenceModel/1#"^^xsd:anyURI;
-                       sh:prefix     "dm"
-                     ];
-        sh:declare   [ rdf:type      sh:PrefixDeclaration;
-                       sh:namespace  "http://www.w3.org/2001/XMLSchema#"^^xsd:anyURI;
-                       sh:prefix     "xsd"
-                     ];
-        sh:declare   [ rdf:type      sh:PrefixDeclaration;
-                       sh:namespace  "http://entsoe.eu/CIM/SchemaExtension/3/1#"^^xsd:anyURI;
-                       sh:prefix     "entsoe"
-                     ] .		
+main:   owl:imports  <https://raw.githubusercontent.com/entsoe/qocdc-ap/main/CGMES_v2_4_constraints/QoCDC4_1_4/PrefixDeclaration.ttl> .
 
 main:DanglingReferences
     a sh:NodeShape ;
