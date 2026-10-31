@@ -39,7 +39,17 @@ cim:    rdf:type     owl:Ontology;
 l5com:DisconnectedTerminal
         rdf:type        sh:NodeShape;
         sh:property     l5com:SvPowerFlow-DisconnectedTerminal;
-        sh:targetClass  cim:SvPowerFlow .
+        sh:target [
+                rdf:type sh:SPARQLTarget ;
+                sh:prefixes cim: ;
+                sh:select """
+                        SELECT DISTINCT ?this
+                        WHERE {
+                                ?this cim:SvPowerFlow.Terminal ?terminal .
+                                ?terminal cim:ACDCTerminal.connected false .
+                        }
+                """
+        ] .
 
 l5com:SvPowerFlow-DisconnectedTerminal
         rdf:type        sh:PropertyShape;
@@ -47,7 +57,7 @@ l5com:SvPowerFlow-DisconnectedTerminal
         sh:group        l5com:Level5-IGMCGM;
         sh:name         "DisconnectedTerminal";
         sh:order        5;
-        sh:path         cim:SvPowerFlow.Terminal;
+        sh:path         cim:SvPowerFlow.p;
         sh:severity     sh:Violation;
         sh:sparql       l5com:SvPowerFlow-DisconnectedTerminalSparql .
 
@@ -81,8 +91,10 @@ l5com:SvPowerFlow-instanceSparql
 			SELECT  $this ?value 
 			WHERE {
         $this rdf:type ?value .
-        OPTIONAL {$this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal ?svpowerflow }.
-        FILTER (!bound(?svpowerflow)).
+        FILTER NOT EXISTS {
+          ?terminal cim:Terminal.ConductingEquipment $this .
+          ?svpowerflow cim:SvPowerFlow.Terminal ?terminal
+        }
 			}""" .
 
 l5com:SvPowerFlow-SvPowerFlowInstances
@@ -102,7 +114,7 @@ l5com:All-GENC1Sparql
         sh:select    """
 			SELECT  $this (COUNT(?value) AS ?counts) ?value
 			WHERE {
-          ?value rdf:type ?o.
+          ?value $PATH ?o.
 			}
       GROUP BY $this ?value
       HAVING(?counts>1)
@@ -115,10 +127,10 @@ l5com:SynchronousMachine-SynchronousCondenserModeSparql
         sh:select    """
 			SELECT  $this ?value 
 			WHERE {
-        $this $PATH cim:SynchronousMachineKind.condenser .
-		$this cim:SynchronousMachine.operatingMode ?opmode .
+        $this cim:SynchronousMachine.operatingMode cim:SynchronousMachineOperatingMode.condenser .
+		$this cim:RotatingMachine.p ?value .
 
-		FILTER (?opmode!=cim:SynchronousMachineOperatingMode.condenser).
+		FILTER (?value != 0).
 			}""" .
 
 l5com:SvTapStep-SV__4
@@ -162,15 +174,12 @@ l5com:SvPowerFlow-DisconnectedTerminalSparql
         sh:prefixes  cim:;
         sh:select    """
 			SELECT  $this ?value 
-			WHERE {
-        $this $PATH ?term .
-		?term cim:ACDCTerminal.connected false .
-		?term ^cim:SvPowerFlow.Terminal ?svpowerflow .
-		?svpowerflow cim:SvPowerFlow.p ?p .
-		?svpowerflow cim:SvPowerFlow.q ?q .
+		WHERE {
+		$this cim:SvPowerFlow.p ?value .
+		$this cim:SvPowerFlow.q ?q .
 
-		FILTER (abs(?p)>0.000001 && abs(?q)>0.000001).
-			}""" .
+		FILTER (abs(?value)>0.000001 || abs(?q)>0.000001).
+		}""" .
 
 l5com:TopologicalIsland-instance
         rdf:type        sh:PropertyShape;
@@ -189,7 +198,7 @@ l5com:SynchronousMachine-SMNullP
         sh:group        l5com:Level5-IGMCGM;
         sh:name         "SMNullP";
         sh:order        12;
-        sh:path         cim:SynchronousMachine.type;
+        sh:path         rdf:type;
         sh:severity     sh:Warning;
         sh:sparql       l5com:SynchronousMachine-SMNullPSparql .
 
@@ -205,9 +214,9 @@ l5com:SvPowerFlow-SvPowerFlowBranchInstances2Sparql
 			SELECT  $this ?value 
 			WHERE {
         $this rdf:type ?value .
-        OPTIONAL {$this ^cim:Terminal.ConductingEquipment/^cim:SvPowerFlow.Terminal ?svpowerflow }.
-        OPTIONAL {$this  cim:Switch.retained  ?retained} .
-        FILTER ((!bound(?retained) && !bound(?svpowerflow)) || (bound(?retained) && ?retained=true && !bound(?svpowerflow))).
+        FILTER (?value NOT IN (cim:Fuse, cim:Disconnector, cim:Jumper, cim:Breaker, cim:LoadBreakSwitch, cim:GroundDisconnector, cim:DisconnectingCircuitBreaker, cim:Switch, cim:Cut) || EXISTS { $this cim:Switch.retained true }) .
+        ?terminal cim:Terminal.ConductingEquipment $this .
+        FILTER NOT EXISTS { ?svpowerflow cim:SvPowerFlow.Terminal ?terminal } .
 			}""" .
 
 l5com:SynchronousMachine-SynchronousCondenserMode
@@ -216,7 +225,7 @@ l5com:SynchronousMachine-SynchronousCondenserMode
         sh:group        l5com:Level5-IGMCGM;
         sh:name         "SynchronousCondenserMode";
         sh:order        11;
-        sh:path         cim:SynchronousMachine.type;
+        sh:path         cim:SynchronousMachine.operatingMode;
         sh:severity     sh:Warning;
         sh:sparql       l5com:SynchronousMachine-SynchronousCondenserModeSparql .
 
