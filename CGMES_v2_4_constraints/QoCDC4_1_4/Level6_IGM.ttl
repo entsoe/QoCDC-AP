@@ -87,26 +87,29 @@ l6igm:KirchhoffsFirstLawSparql
         sh:message   "The sum of the cim:SvPowerFlow-s reported on a cim:TopologicalNode is not within the solution tolerance and there is no SvInjection provided. Sum P={?sumP} MW, Sum Q={?sumQ} Mvar.";
         sh:prefixes  cim:;
         sh:select    """
-        SELECT $this ?sumP ?sumQ
-        WHERE {
-          {
-            SELECT $this (SUM(?p) AS ?sumP) (SUM(?q) AS ?sumQ)
-            WHERE {
-              ?terminal cim:Terminal.TopologicalNode $this .
-              ?svpf cim:SvPowerFlow.Terminal ?terminal ;
-                    cim:SvPowerFlow.q ?q ;
-                    cim:SvPowerFlow.p ?p .
-              FILTER NOT EXISTS {
-                ?terminal cim:Terminal.ConductingEquipment ?ce .
-                ?ce cim:Switch.retained false .
-              }
-            }
-            GROUP BY $this
-          }
+		SELECT $this ?sumP ?sumQ
+		WHERE {
+		  {
+		   SELECT $this (SUM(?p) AS ?sumP) (SUM(?q) AS ?sumQ)
+			WHERE {
+			  $this ^cim:Terminal.TopologicalNode/^cim:SvPowerFlow.Terminal ?svpf .
+			  ?svpf cim:SvPowerFlow.p ?p ;
+					cim:SvPowerFlow.q ?q ;
+					cim:SvPowerFlow.Terminal ?t .
+			  FILTER NOT EXISTS {
+				?t cim:Terminal.ConductingEquipment ?ce .
+				?ce cim:Switch.retained false .
+				?ce a ?cetype .
+				FILTER (?cetype IN (cim:Switch, cim:Breaker))
+			  }
+			}
+			GROUP BY $this
+		  }
 
-          FILTER NOT EXISTS { ?svi cim:SvInjection.TopologicalNode $this }
-          FILTER(ABS(?sumP) > 0.1 || ABS(?sumQ) > 0.1).
-        }
+		  BIND(EXISTS{$this ^cim:SvInjection.TopologicalNode ?svi} AS ?hassvi).
+
+		  FILTER( (?hassvi=false && (ABS(?sumP) > 0.1 || ABS(?sumQ) > 0.1))).
+		}
     """ .
 
 
