@@ -44,27 +44,29 @@ l6cgm:KirchhoffsFirstLawCGMSparql
         sh:message   "The sum of the cim:SvPowerFlow-s reported on a cim:TopologicalNode is not within the solution tolerance and there is no SvInjection provided. Sum of P {?sumP}. Sum of Q {?sumQ}.";
         sh:prefixes  cim:;
         sh:select    """
-        SELECT $this ?sumP ?sumQ
-        WHERE {
-          {
-           SELECT $this (SUM(?p) AS ?sumP) (SUM(?q) AS ?sumQ)
-            WHERE {
-              $this ^cim:Terminal.TopologicalNode/^cim:SvPowerFlow.Terminal ?svpf .
-              ?svpf cim:SvPowerFlow.p ?p ;
-                    cim:SvPowerFlow.q ?q ;
-                    cim:SvPowerFlow.Terminal ?t .
-              FILTER NOT EXISTS {
-                ?t cim:Terminal.ConductingEquipment ?ce .
-              # any cim:Switch subclass with Switch.retained false
-                  ?ce cim:Switch.retained false .
-              }
-            }
-            GROUP BY $this
-          }
+		SELECT $this ?sumP ?sumQ
+		WHERE {
+		  {
+		   SELECT $this (SUM(?p) AS ?sumP) (SUM(?q) AS ?sumQ)
+			WHERE {
+			  $this ^cim:Terminal.TopologicalNode/^cim:SvPowerFlow.Terminal ?svpf .
+			  ?svpf cim:SvPowerFlow.p ?p ;
+					cim:SvPowerFlow.q ?q ;
+					cim:SvPowerFlow.Terminal ?t .
+			  FILTER NOT EXISTS {
+				?t cim:Terminal.ConductingEquipment ?ce .
+				?ce cim:Switch.retained false .
+				?ce a ?cetype .
+				FILTER (?cetype IN (cim:Switch, cim:Breaker))
+			  }
+			}
+			GROUP BY $this
+		  }
 
-          FILTER NOT EXISTS { ?svi cim:SvInjection.TopologicalNode $this }
-          FILTER(ABS(?sumP) > 0.5 || ABS(?sumQ) > 0.5).
-        }
+		  BIND(EXISTS{$this ^cim:SvInjection.TopologicalNode ?svi} AS ?hassvi).
+
+		  FILTER( (?hassvi=false && (ABS(?sumP) > 0.5 || ABS(?sumQ) > 0.5))).
+		}
     """ .
 
 
@@ -73,26 +75,28 @@ l6cgm:KirchhoffsFirstLawCGMrelaxedSparql
         sh:message   "The sum of the cim:SvPowerFlow-s reported on a cim:TopologicalNode is not within the solution tolerance of primary settings, but it is within the range of relaxed settings and there is no SvInjection provided. Sum of P {?sumP}. Sum of Q {?sumQ}.";
         sh:prefixes  cim:;
         sh:select    """
-           SELECT $this ?sumP ?sumQ
-        WHERE {
-          {
-           SELECT $this (SUM(?p) AS ?sumP) (SUM(?q) AS ?sumQ)
-            WHERE {
-              $this ^cim:Terminal.TopologicalNode/^cim:SvPowerFlow.Terminal ?svpf .
-              ?svpf cim:SvPowerFlow.p ?p ;
-                    cim:SvPowerFlow.q ?q ;
-                    cim:SvPowerFlow.Terminal ?t .
-              FILTER NOT EXISTS {
-                ?t cim:Terminal.ConductingEquipment ?ce .
-                  # any cim:Switch subclass with Switch.retained false
-                   ?ce cim:Switch.retained false .
-              }
-            }
-            GROUP BY $this
-          }
+		   SELECT $this ?sumP ?sumQ
+		WHERE {
+		  {
+		   SELECT $this (SUM(?p) AS ?sumP) (SUM(?q) AS ?sumQ)
+			WHERE {
+			  $this ^cim:Terminal.TopologicalNode/^cim:SvPowerFlow.Terminal ?svpf .
+			  ?svpf cim:SvPowerFlow.p ?p ;
+					cim:SvPowerFlow.q ?q ;
+					cim:SvPowerFlow.Terminal ?t .
+			  FILTER NOT EXISTS {
+				?t cim:Terminal.ConductingEquipment ?ce .
+				?ce cim:Switch.retained false .
+				?ce a ?cetype .
+				FILTER (?cetype IN (cim:Switch, cim:Breaker))
+			  }
+			}
+			GROUP BY $this
+		  }
 
-          FILTER NOT EXISTS { ?svi cim:SvInjection.TopologicalNode $this }
-          FILTER((ABS(?sumP) >= 0.1 && ABS(?sumP) <= 0.5) || (ABS(?sumQ) >= 0.1 && ABS(?sumQ) <= 0.5)).
-        }
+		  BIND(EXISTS{$this ^cim:SvInjection.TopologicalNode ?svi} AS ?hassvi).
+
+		  FILTER( (?hassvi=false && ((ABS(?sumP) > 0.1 && ABS(?sumP) < 0.5) || (ABS(?sumQ) > 0.1 && ABS(?sumQ) < 0.5)))).
+		}
     """  .
 
