@@ -1,8 +1,8 @@
-@base            <https://ap-con.cim4.eu/QoCDC-Level2-Header/4.1.4> .
+@base            <https://ap-con.cim4.eu/QoCDC-DanglingRef/4.1.4> .
 @prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix owl:     <http://www.w3.org/2002/07/owl#> .
 @prefix sh:      <http://www.w3.org/ns/shacl#> .
-@prefix main:    <https://ap-con.cim4.eu/QoCDC-Level2-Header/4.1.4#> .
+@prefix main:    <https://ap-con.cim4.eu/QoCDC-DanglingRef/4.1.4#> .
 @prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix dcat:    <http://www.w3.org/ns/dcat#> .
@@ -21,7 +21,7 @@ main:Ontology  rdf:type         owl:Ontology ;
         dcterms:rights            "Copyright"@en ;
         dcterms:rightsHolder      "ENTSO-E"@en ;
         dcterms:title             "Dangling references custom validation configuration"@en ;
-        owl:versionIRI        <https://ap-con.cim4.eu/QoCDC-Level2-Header/4.1.4> ;
+        owl:versionIRI        <https://ap-con.cim4.eu/QoCDC-DanglingRef/4.1.4> ;
         owl:versionInfo       "1.0.0"@en ;
         dcat:theme            "constraints"@en .
 

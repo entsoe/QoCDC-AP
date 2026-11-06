@@ -1,9 +1,9 @@
-@base   <https://ap-con.cim4.eu/QoCDC-Level2-IGMCGM/4.1.4> .
+@base   <https://ap-con.cim4.eu/QoCDC-Level2-IGMCGM-Single/4.1.4> .
 @prefix cim:    <http://iec.ch/TC57/2013/CIM-schema-cim16#> .
 @prefix dash:   <http://datashapes.org/dash#> .
 @prefix dm:     <http://iec.ch/TC57/61970-552/DifferenceModel/1#> .
 @prefix entsoe: <http://entsoe.eu/CIM/SchemaExtension/3/1#> .
-@prefix l2com:  <https://ap-con.cim4.eu/QoCDC-Level2-IGMCGM/4.1.4#> .
+@prefix l2com:  <https://ap-con.cim4.eu/QoCDC-Level2-IGMCGM-Single/4.1.4#> .
 @prefix md:     <http://iec.ch/TC57/61970-552/ModelDescription/1#> .
 @prefix owl:    <http://www.w3.org/2002/07/owl#> .
 @prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
