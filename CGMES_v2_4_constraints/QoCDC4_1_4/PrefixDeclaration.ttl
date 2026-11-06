@@ -1,12 +1,16 @@
-@base           <https://entsoe.eu/constraints/ncp/pd> .
-@prefix pd:  <https://entsoe.eu/constraints/ncp/pd/2.2#> .
-@prefix cim:     <http://iec.ch/TC57/CIM100#> .
+@base   <https://ap-con.cim4.eu/QoCDC-PrefixDeclaration/> .
+@prefix cim:    <http://iec.ch/TC57/2013/CIM-schema-cim16#> .
+@prefix pd:  <https://ap-con.cim4.eu/QoCDC-PrefixDeclaration/4.1.4#> .
+@prefix dm:     <http://iec.ch/TC57/61970-552/DifferenceModel/1#> .
+@prefix entsoe: <http://entsoe.eu/CIM/SchemaExtension/3/1#> .
+@prefix md:     <http://iec.ch/TC57/61970-552/ModelDescription/1#> .
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh:     <http://www.w3.org/ns/shacl#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
 @prefix dcat:    <http://www.w3.org/ns/dcat#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
-@prefix owl:     <http://www.w3.org/2002/07/owl#> .
-@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix sh:      <http://www.w3.org/ns/shacl#> .
-@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
 
 pd:Ontology  rdf:type         owl:Ontology ;
         dcterms:conformsTo        "urn:iso:std:iec:61970-501:draft:ed-2" , "urn:iso:std:iec:61970-600-2:ed-1" , "urn:iso:std:iec:61970-301:ed-7:amd1" , "file://iec61970cim17v40_iec61968cim13v13a_iec62325cim03v17a.eap" ;
@@ -20,7 +24,7 @@ pd:Ontology  rdf:type         owl:Ontology ;
         dcterms:rights            "Copyright"@en ;
         dcterms:rightsHolder      "ENTSO-E"@en ;
         dcterms:title             "Prefix declaration"@en ;
-        owl:versionIRI        <https://entsoe.eu/constraints/ncp/pd/2.2> ;
+        owl:versionIRI        <https://ap-con.cim4.eu/QoCDC-PrefixDeclaration/4.1.4> ;
 		dcterms:license        "https://www.apache.org/licenses/LICENSE-2.0" ;
         owl:versionInfo       "1.0.0"@en ;
         dcat:theme            "constraints"@en .
@@ -28,11 +32,6 @@ pd:Ontology  rdf:type         owl:Ontology ;
 
 cim:
     a owl:Ontology ;
-    sh:declare [
-        a sh:PrefixDeclaration ;
-        sh:namespace "http://iec.ch/TC57/CIM100#"^^xsd:anyURI ;
-        sh:prefix "cim" ;
-    ] ;
     sh:declare [
         a sh:PrefixDeclaration ;
         sh:namespace "http://iec.ch/TC57/2013/CIM-schema-cim16#"^^xsd:anyURI ;
@@ -67,11 +66,6 @@ cim:
         a sh:PrefixDeclaration ;
         sh:namespace "http://iec.ch/TC57/61970-552/DifferenceModel/1#"^^xsd:anyURI ;
         sh:prefix "dm" ;
-    ] ;
-    sh:declare [
-        a sh:PrefixDeclaration ;
-        sh:namespace "http://iec.ch/TC57/CIM100-European#"^^xsd:anyURI ;
-        sh:prefix "eu" ;
     ] ;
     sh:declare [
         a sh:PrefixDeclaration ;
