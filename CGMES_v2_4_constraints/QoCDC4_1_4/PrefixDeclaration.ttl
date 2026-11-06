@@ -35,7 +35,7 @@ cim:
     sh:declare [
         a sh:PrefixDeclaration ;
         sh:namespace "http://iec.ch/TC57/2013/CIM-schema-cim16#"^^xsd:anyURI ;
-        sh:prefix "cim16" ;
+        sh:prefix "cim" ;
     ] ;
     sh:declare [
         a sh:PrefixDeclaration ;
