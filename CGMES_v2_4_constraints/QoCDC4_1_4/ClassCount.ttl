@@ -1,6 +1,6 @@
 @base           <https://entsoe.eu/constraints/ncp/cc> .
 @prefix cconst:  <https://entsoe.eu/constraints/ncp/cc/2.2#> .
-@prefix cim:     <http://iec.ch/TC57/CIM100#> .
+@prefix cim:    <http://iec.ch/TC57/2013/CIM-schema-cim16#> .
 @prefix dcat:    <http://www.w3.org/ns/dcat#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix md:      <http://iec.ch/TC57/61970-552/ModelDescription/1#> .
