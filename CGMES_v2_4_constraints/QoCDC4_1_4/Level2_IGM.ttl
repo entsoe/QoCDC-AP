@@ -11,31 +11,29 @@
 @prefix sh:     <http://www.w3.org/ns/shacl#> .
 @prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
 
-l2igm:MAS-IGM1  rdf:type  sh:NodeShape;
-        sh:property    l2igm:IGM-MASPersistency;
-        sh:targetNode  cim:MASPersistency .
-
 l2igm:IGM-MASPersistency
-        rdf:type        sh:PropertyShape;
+        rdf:type        sh:NodeShape;
         sh:description  "The 'md: Model. modelingAuthoritySet' attribute must be persistent for all CIMXML files of an IGM. Note that to test this across CIMXML files this must be done for a model where all files have been included.";
         sh:group        l2igm:Level2-IGM;
         sh:name         "MASPersistency";
         sh:order        2;
-        sh:path         md:Model.modelingAuthoritySet;
         sh:severity     sh:Violation;
-        sh:sparql       l2igm:IGM-MASPersistencySparql .
+        sh:sparql       l2igm:IGM-MASPersistencySparql;
+        sh:targetClass  md:FullModel , dm:DifferenceModel .
 
 l2igm:IGM-MASPersistencySparql
         rdf:type    sh:SPARQLConstraint;
-        sh:message  "md:Model.modelingAuthoritySet is not persistent across IGM files.";
+        sh:message  "md:Model.modelingAuthoritySet {?value} differs from the modelingAuthoritySet of another file of the IGM.";
         sh:prefixes  cim:;
         sh:select   """
-	      SELECT $this (COUNT(DISTINCT ?value) AS ?count)
-        WHERE {
-          ?fm $PATH ?value .
-        }
-        GROUP BY $this $PATH
-        HAVING(?count>2)
+          SELECT DISTINCT $this ?value
+          WHERE {
+            $this md:Model.modelingAuthoritySet ?value .
+            FILTER NOT EXISTS { $this md:Model.profile ?profile . FILTER (CONTAINS(STR(?profile), "Boundary")) }
+            ?other md:Model.modelingAuthoritySet ?otherValue .
+            FILTER (?other != $this && STR(?otherValue) != STR(?value))
+            FILTER NOT EXISTS { ?other md:Model.profile ?otherProfile . FILTER (CONTAINS(STR(?otherProfile), "Boundary")) }
+          }
         """ .
 
 l2igm:IGM-MAS  rdf:type  sh:PropertyShape;
