@@ -55,6 +55,7 @@ l3com:IdentifiedObject.name-stringLength
         sh:order        3;
         sh:path         cim:IdentifiedObject.name;
         sh:severity     sh:Violation;
+        sh:minLength 1;
         sh:maxLength 32 .
 
 l3com:IdentifiedObject.description-stringLength
