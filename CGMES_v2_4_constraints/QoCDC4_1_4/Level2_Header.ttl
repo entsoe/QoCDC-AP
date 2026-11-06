@@ -56,7 +56,7 @@ l2head:FullModel  rdf:type  sh:NodeShape;
         sh:name         "FileHeader";
         sh:order        1;
         sh:severity     sh:Violation;
-        sh:sparql       l2head:FileHeaderSparql .
+        sh:sparql       l2head:FileHeaderSparql ;
         sh:targetNode md:FullModel .
 
 l2head:Model.created-ModelCreatedSparql

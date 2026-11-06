@@ -531,7 +531,7 @@ l3igm:OperationalLimitType.acceptableDuration-usageSparql
 			SELECT  $this
 			WHERE {
 		$this entsoe:OperationalLimitType.limitType ?type .
-        FILTER NOT EXISTS { $this $PATH ?value }
+        FILTER NOT EXISTS { $this cim:OperationalLimitType.acceptableDuration ?value }
         FILTER(?type IN (entsoe:LimitTypeKind.tatl, entsoe:LimitTypeKind.tct ) ) .
 			}""" .
 
@@ -1278,7 +1278,7 @@ l3igm:OperationalLimitType.acceptableDuration-usage
         sh:group        l3igm:Level3-IGM;
         sh:name         "AcceptableDuration";
         sh:order        50;
-        sh:path         cim:OperationalLimitType.acceptableDuration;
+        sh:path         rdf:type;
         sh:severity     sh:Violation;
         sh:sparql       l3igm:OperationalLimitType.acceptableDuration-usageSparql .
 
@@ -2088,16 +2088,16 @@ l3igm:PowerTransformerEnd.b-valueRangeSparql
         sh:message   "Two winding transformer with a positive shunt.";
         sh:prefixes  cim:;
         sh:select    """
-	      SELECT $this  
+	      SELECT $this ?value
         WHERE {
 		  FILTER NOT EXISTS { $this cim:Equipment.aggregate true }
 		  ?end cim:PowerTransformerEnd.PowerTransformer $this ;
-		       $PATH ?b .
+		       $PATH ?value .
           FILTER NOT EXISTS {
             ?threeWindingEnd cim:PowerTransformerEnd.PowerTransformer $this ;
                              cim:TransformerEnd.endNumber 3 .
           }
-          FILTER(?b>0).
+          FILTER(?value>0).
         } """ .
 
 l3igm:OperationalLimitSetACLineSegment
