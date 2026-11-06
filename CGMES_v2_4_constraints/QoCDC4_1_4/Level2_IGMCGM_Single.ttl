@@ -61,7 +61,7 @@ l2com:AttributeAndRoleValues  rdf:type  sh:NodeShape;
         sh:name         "AttributeAndRoleValues";
         sh:order        1;
         sh:severity     sh:Violation;
-        sh:sparql       l2com:AttributeAndRoleValuesSparql .
+        sh:sparql       l2com:AttributeAndRoleValuesSparql ;
         sh:targetClass md:FullModel, dm:DifferenceModel .
 
 
