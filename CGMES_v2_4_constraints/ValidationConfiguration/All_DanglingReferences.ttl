@@ -1,8 +1,8 @@
-@base            <https://coreso.eu/swe/rosc/constraints/ncp/configuration/2.2> .
+@base            <https://ap-con.cim4.eu/QoCDC-Level2-Header/4.1.4> .
 @prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix owl:     <http://www.w3.org/2002/07/owl#> .
 @prefix sh:      <http://www.w3.org/ns/shacl#> .
-@prefix main:    <https://coreso.eu/swe/rosc/constraints/ncp/configuration/2.2#> .
+@prefix main:    <https://ap-con.cim4.eu/QoCDC-Level2-Header/4.1.4#> .
 @prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix dcat:    <http://www.w3.org/ns/dcat#> .
@@ -10,18 +10,18 @@
 
 main:Ontology  rdf:type         owl:Ontology ;
         dcterms:conformsTo        "urn:iso:ts:iec:61970-600-2:ed-1" , <http://www.w3.org/ns/shacl#> ;
-        dcterms:creator           "Coreso SWE CCR"@en ;
-        dcterms:description       "Validation configuration for the SWE custom dangling reference check across the assembled CGMES 2.4 and NCP 2.2 datasets (multiple datasets)."@en ;
+        dcterms:creator           "ENTSO-E"@en ;
+        dcterms:description       "Validation configuration for the custom dangling reference check across the assembled IGM."@en ;
         dcterms:identifier        "urn:uuid:e69abc95-695f-40c1-814d-88296aeb92c5" ;
         dcterms:issued            "2026-09-24T13:10:44Z"^^xsd:dateTime ;
         dcterms:language          "en-GB" ;
         dcterms:license           "https://www.apache.org/licenses/LICENSE-2.0" ;
         dcterms:modified          "2026-09-24"^^xsd:date ;
-        dcterms:publisher         "Coreso SWE CCR"@en ;
+        dcterms:publisher         "ENTSO-E"@en ;
         dcterms:rights            "Copyright"@en ;
-        dcterms:rightsHolder      "Coreso SWE CCR"@en ;
-        dcterms:title             "Dangling references SWE custom validation configuration"@en ;
-        owl:versionIRI        <https://coreso.eu/swe/rosc/constraints/ncp/configuration/2.2> ;
+        dcterms:rightsHolder      "ENTSO-E"@en ;
+        dcterms:title             "Dangling references custom validation configuration"@en ;
+        owl:versionIRI        <https://ap-con.cim4.eu/QoCDC-Level2-Header/4.1.4> ;
         owl:versionInfo       "1.0.0"@en ;
         dcat:theme            "constraints"@en .
 
