@@ -1057,7 +1057,7 @@ l3igm:MCFirstSecond  rdf:type  sh:NodeShape;
 
 l3igm:CEBaseVoltage  rdf:type  sh:NodeShape;
         sh:property     l3igm:ConductingEquipment-CEBaseVoltage;
-        sh:targetClass  cim:LoadBreakSwitch , cim:Ground , cim:EquivalentInjection , cim:RotatingMachine , cim:CsConverter , cim:ConformLoad , cim:Switch , cim:Disconnector , cim:Connector , cim:RegulatingCondEq , cim:ShuntCompensator , cim:NonlinearShuntCompensator , cim:ProtectedSwitch , cim:GroundDisconnector , cim:AsynchronousMachine , cim:BusbarSection , cim:StaticVarCompensator , cim:LinearShuntCompensator , cim:Junction , cim:EarthFaultCompensator , cim:EnergySource , cim:Breaker , cim:StationSupply , cim:ExternalNetworkInjection , cim:EnergyConsumer , cim:EquivalentEquipment , cim:PetersenCoil , cim:Conductor , cim:GroundingImpedance , cim:EquivalentShunt , cim:NonConformLoad , cim:SynchronousMachine , cim:VsConverter .
+        sh:targetClass  cim:LoadBreakSwitch , cim:Ground , cim:EquivalentInjection , cim:RotatingMachine , cim:ConformLoad , cim:Switch , cim:Disconnector , cim:Connector , cim:RegulatingCondEq , cim:ShuntCompensator , cim:NonlinearShuntCompensator , cim:ProtectedSwitch , cim:GroundDisconnector , cim:AsynchronousMachine , cim:BusbarSection , cim:StaticVarCompensator , cim:LinearShuntCompensator , cim:Junction , cim:EarthFaultCompensator , cim:EnergySource , cim:Breaker , cim:StationSupply , cim:ExternalNetworkInjection , cim:EnergyConsumer , cim:EquivalentEquipment , cim:PetersenCoil , cim:Conductor , cim:GroundingImpedance , cim:EquivalentShunt , cim:NonConformLoad , cim:SynchronousMachine .
 
 l3igm:Measurement.Terminal-MeasTerminal
         rdf:type        sh:PropertyShape;
