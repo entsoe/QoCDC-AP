@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rdf:RDF xmlns:cims="http://iec.ch/TC57/1999/rdf-schema-extensions-19990926#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xsd="http://www.w3.org/2001/XMLSchema#" xmlns:cim="http://iec.ch/TC57/2013/CIM-schema-cim16#" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xml:base="http://iec.ch/TC57/2013/CIM-schema-cim16" xmlns:entsoe="http://entsoe.eu/CIM/SchemaExtension/3/1#" xmlns:owl="http://www.w3.org/2002/07/owl#" >
+	<rdf:Description rdf:about="http://entsoe.eu/CIM/EquipmentCore/3/1#Ontology">
+	<rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Ontology"/>
+	<owl:versionIRI rdf:resource="http://entsoe.eu/CIM/EquipmentCore/3/1"/>
+	</rdf:Description>
 	 <rdf:Description rdf:about="#Package_EquipmentProfile">
 	<rdfs:label xml:lang="en">EquipmentProfile</rdfs:label>
 	<rdf:type rdf:resource="http://iec.ch/TC57/1999/rdf-schema-extensions-19990926#ClassCategory"/>
@@ -107,16 +111,6 @@ Form is YYYY-MM-DD for example for January 5, 2009 it is 2009-01-05.</rdfs:comme
 	<rdfs:comment  rdf:parseType="Literal">Profile URI defined by ENTSO-E and used in the Model Exchange header.  It uniquely identifies the Profile and its version. The last two elements in the URI (http://entsoe.eu/CIM/EquipmentCore/yy/zzz) indicate major and minor versions where: 
 - yy - indicates a major version;
 - zzz - indicates a minor version. </rdfs:comment>
-	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
-	 </rdf:Description>
-	 	 <rdf:Description rdf:about="http://www.w3.org/2002/07/owl#versionIRI">
-	<cims:stereotype rdf:resource="http://iec.ch/TC57/NonStandard/UML#attribute"/>
-	<rdfs:label xml:lang="en">versionIRI</rdfs:label>
-	<rdfs:domain rdf:resource="http://entsoe.eu/CIM/SchemaExtension/3/1#EquipmentVersion"/>
-	<cims:dataType rdf:resource="#String"/>
-	<cims:multiplicity rdf:resource="http://iec.ch/TC57/1999/rdf-schema-extensions-19990926#M:1..n" />
-	<cims:isFixed rdf:datatype="http://www.w3.org/2001/XMLSchema#string">http://entsoe.eu/CIM/EquipmentCore/3/1</cims:isFixed>
-	<rdfs:comment  rdf:parseType="Literal">versionIRI used for the implementation of the Validation Tool</rdfs:comment>
 	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
 	 </rdf:Description>
 	 <rdf:Description rdf:about="http://entsoe.eu/CIM/SchemaExtension/3/1#EquipmentVersion.entsoeURIoperation">
