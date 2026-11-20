@@ -801,9 +801,7 @@ l3igm:ConductingEquipment-CEBaseVoltageSparql
 			WHERE {
         OPTIONAL {$this $PATH ?value }. 
 		OPTIONAL {$this (cim:Equipment.EquipmentContainer/cim:VoltageLevel.BaseVoltage)|(cim:Equipment.EquipmentContainer/cim:Bay.VoltageLevel/cim:VoltageLevel.BaseVoltage) ?cebv }.
-		#BIND(EXISTS{$this ^cim:Terminal.ConductingEquipment/cim:Terminal.TopologicalNode/cim:TopologicalNode.boundaryPoint true } AS ?isBP).
-		#BIND(EXISTS{$this rdf:type cim:Junction } AS ?isJunction).
-        #FILTER (?isJunction=true && ?isBP=true && ((!bound(?value) && !bound(?cebv)) || (bound(?cebv) && bound(?value) && ?value!=?cebv))) .
+		FILTER NOT EXISTS { $this rdf:type cim:Junction ; ^cim:Terminal.ConductingEquipment/((cim:Terminal.ConnectivityNode/entsoe:ConnectivityNode.boundaryPoint)|(cim:Terminal.TopologicalNode/entsoe:TopologicalNode.boundaryPoint)) true } .
         FILTER ((!bound(?value) && NOT EXISTS { $this cim:Equipment.EquipmentContainer/rdf:type ?ctype . FILTER (?ctype IN (cim:VoltageLevel, cim:Bay)) }) || (bound(?cebv) && bound(?value) && ?value!=?cebv)) .
 			}""" .
 
@@ -2144,7 +2142,7 @@ l3igm:OperationalLimitSet-PATL4Sparql
 
 l3igm:ConductingEquipment-CEBaseVoltage
         rdf:type        sh:PropertyShape;
-        sh:description  "All cim:ConductingEquipment except cim:ACLineSegment, cim:SeriesCompensator, cim:EquivalentBranch, cim:PowerTransformer and cim:ACDCConverter, must either have an association with cim:BaseVoltage or be located within a cim:VoltageLevel or cim:Bay. The exception is because rule BranchBaseVoltage validates similar conditions. If both cim:ConductingEquipment.BaseVoltage and containment in a cim:VoltageLevel or cim:Bay are provided, the association ends cim:ConductingEquipment.BaseVoltage and cim:VoltageLevel.BaseVoltage shall refer to the same cim:BaseVoltage.";
+        sh:description  "All cim:ConductingEquipment except cim:ACLineSegment, cim:SeriesCompensator, cim:EquivalentBranch, cim:PowerTransformer, cim:ACDCConverter and cim:Junction of the Equipment Boundary dataset (a cim:Junction whose cim:Terminal connects to a boundary point) must either have an association with cim:BaseVoltage or be located within a cim:VoltageLevel or cim:Bay. The exception is because rule BranchBaseVoltage validates similar conditions. If both cim:ConductingEquipment.BaseVoltage and containment in a cim:VoltageLevel or cim:Bay are provided, the association ends cim:ConductingEquipment.BaseVoltage and cim:VoltageLevel.BaseVoltage shall refer to the same cim:BaseVoltage.";
         sh:group        l3igm:Level3-IGM;
         sh:name         "CEBaseVoltage";
         sh:order        29;
