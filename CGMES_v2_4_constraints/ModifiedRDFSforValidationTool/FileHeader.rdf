@@ -146,7 +146,7 @@ The Model class describes the header content that is the same for the FullModel 
 	<cims:stereotype rdf:resource="http://iec.ch/TC57/NonStandard/UML#attribute"/>
 	<rdfs:label xml:lang="en">modelingAuthoritySet</rdfs:label>
 	<rdfs:domain rdf:resource="http://iec.ch/TC57/61970-552/ModelDescription/1#Model"/>
-	<cims:dataType rdf:resource="http://entsoe.eu/CIM/SchemaExtension/3/1#URI"/>
+	<cims:dataType rdf:resource="#String"/>
 	<cims:multiplicity rdf:resource="http://iec.ch/TC57/1999/rdf-schema-extensions-19990926#M:1..1" />
 	<rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">A URN/URI referring to the organisation role / model authority set reference. The organization role is the source of the model. It is the same for all profiles part of a model exchange. </rdfs:comment>
 	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
