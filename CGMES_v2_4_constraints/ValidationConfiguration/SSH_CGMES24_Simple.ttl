@@ -1,8 +1,8 @@
-@base            <http://iec.ch/TC57/ns/CIM/CGMES/Constraints/main/2.4> .
+@base            <https://ap-val.cim4.eu/QoCDC-SSH/4.1.4> .
 @prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix owl:     <http://www.w3.org/2002/07/owl#> .
 @prefix sh:      <http://www.w3.org/ns/shacl#> .
-@prefix main:    <http://iec.ch/TC57/ns/CIM/CGMES/Constraints/main/2.4#> .
+@prefix main:    <https://ap-val.cim4.eu/QoCDC-SSH/4.1.4#> .
 @prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix dcat:    <http://www.w3.org/ns/dcat#> .
@@ -20,7 +20,7 @@ main:Ontology  rdf:type         owl:Ontology ;
         dcterms:rights            "Copyright"@en ;
         dcterms:rightsHolder      "ENTSO-E"@en  ;
         dcterms:title             "SSH CGMES 2.4 validation configuration"@en ;
-        owl:versionIRI        <http://iec.ch/TC57/ns/CIM/CGMES/Constraints/main/2.4> ;
+        owl:versionIRI        <https://ap-val.cim4.eu/QoCDC-SSH/4.1.4> ;
         owl:versionInfo       "1.0.0"@en ;
         dcat:theme            "constraints"@en .
 
