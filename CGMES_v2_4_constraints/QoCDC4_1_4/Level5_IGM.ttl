@@ -246,14 +246,31 @@ l5igm:TapChangerControl-remoteQcontrolSparql
 
 l5igm:GeographicalRegion-EQ__4
         rdf:type        sh:PropertyShape;
-        sh:description  "An IGM shall have a single cim:GeographicalRegion. cim:SubGeographicalRegion-s in an IGM shall refer to a single cim:GeographicalRegion.";
+        sh:description  "An IGM shall have a single cim:GeographicalRegion. cim:SubGeographicalRegion-s in an IGM shall refer to a single cim:GeographicalRegion. The regions of the IGM are the cim:GeographicalRegion-s that its cim:Substation-s are in (cim:Substation.Region/cim:SubGeographicalRegion.Region); the regions of the equipment boundary, which is validated together with the IGM, are not counted.";
         sh:group        l5igm:Level5-IGM;
-        sh:maxCount     1;
-        sh:message      "More than one GeographicalRegion in IGM or cim:SubGeographicalRegion-s refer to multiple cim:GeographicalRegion-s.";
+        sh:message      "cim:SubGeographicalRegion-s of the IGM refer to more than one cim:GeographicalRegion. Count: {?value}.";
         sh:name         "GeographicalRegion";
         sh:order        2;
         sh:path         [ sh:inversePath  rdf:type ];
-        sh:severity     sh:Violation .
+        sh:severity     sh:Violation;
+        sh:sparql       l5igm:GeographicalRegion-EQ__4Sparql .
+
+l5igm:GeographicalRegion-EQ__4Sparql
+        rdf:type     sh:SPARQLConstraint;
+        sh:message   "cim:SubGeographicalRegion-s of the IGM refer to more than one cim:GeographicalRegion. Count: {?value}.";
+        sh:prefixes  cim:;
+        sh:select    """
+			SELECT $this ?value
+			WHERE {
+          {
+            SELECT (COUNT(DISTINCT ?region) AS ?value)
+            WHERE {
+              ?substation rdf:type cim:Substation ;
+                          cim:Substation.Region/cim:SubGeographicalRegion.Region ?region .
+            }
+          }
+          FILTER (?value > 1) .
+			}""" .
 
 l5igm:RegulatingControl-pointSparql
         rdf:type     sh:SPARQLConstraint;
