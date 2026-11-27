@@ -240,6 +240,11 @@ l4com:DanglingReferences
                 FILTER NOT EXISTS {
                     ?this rdf:type ?type .
                 }
+
+                FILTER NOT EXISTS {
+                    ?subject rdf:type ?headerType .
+                    FILTER (?headerType IN (md:FullModel, dm:DifferenceModel))
+                }
             }
         """ ;
     ] ;
@@ -254,7 +259,7 @@ l4com:All-DanglingReferences
 	sh:name         "DanglingReference";
 	sh:severity     sh:Violation;
 	sh:group        l4com:Level4-IGMCGM;
-	sh:description  "For all references (part of the CGMES profiles and additional, if existing), the mRID specified in every rdf:resource in the assembly of cimxml instance files shall be defined in an existing rdf:ID and rdf:about part of the data exchange.";
+	sh:description  "For all references (part of the CGMES profiles and additional, if existing), the mRID specified in every rdf:resource in the assembly of cimxml instance files shall be defined in an existing rdf:ID and rdf:about part of the data exchange. The values of file header properties (md:FullModel, dm:DifferenceModel), such as md:Model.Supersedes and md:Model.DependentOn, name other models and are not checked.";
     sh:message   "Dangling reference found." .
 
 l4com:SSHEQSSHEQDIFF-SSHSparql
