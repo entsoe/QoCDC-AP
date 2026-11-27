@@ -404,7 +404,7 @@ l6com:ExternalNetworkInjection.p-limits
 
 l6com:ControlArea.netInterchange-NetInterchange1Sparql
         rdf:type     sh:SPARQLConstraint;
-        sh:message   "Netted Area position not respected more than 50 MW or cim:ControlArea.pTolerance, if provided. ControlArea.netInterchange= {?value}. Sum of the EquivalentInjections= {?sump}.";
+        sh:message   "Netted Area position not respected more than 50 MW or cim:ControlArea.pTolerance, if provided. ControlArea.netInterchange= {?value}. Sum of the tie flows= {?sump}.";
         sh:prefixes  cim:;
         sh:select    """
 			SELECT  $this ?value ?sump
@@ -413,17 +413,35 @@ l6com:ControlArea.netInterchange-NetInterchange1Sparql
         $this cim:ControlArea.netInterchange ?value .
 		OPTIONAL {$this cim:ControlArea.pTolerance ?ptol }.
         {
-        SELECT $this (SUM(-?p) AS ?sump)
+        SELECT $this (SUM(?c) AS ?sump)
         WHERE {
-              ?term ^cim:TieFlow.Terminal/cim:TieFlow.ControlArea $this  .
-			  ?term cim:Terminal.TopologicalNode/entsoe:TopologicalNode.boundaryPoint true .
-			  ?term cim:Terminal.TopologicalNode ?tn.
-			  ?tn ^cim:Terminal.TopologicalNode ?terms.
-              ?terms cim:Terminal.ConductingEquipment/rdf:type cim:EquivalentInjection .
-              ?terms rdf:type ?termtype.
-              ?terms ^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.p ?p .
+          {
+         
+            SELECT DISTINCT $this ?term ?c
+            WHERE {
+              ?term ^cim:TieFlow.Terminal/cim:TieFlow.ControlArea $this .
+              ?term cim:Terminal.TopologicalNode/entsoe:TopologicalNode.boundaryPoint true .
+              ?term ^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.p ?p .
+              BIND (IF(EXISTS { ?term cim:Terminal.ConductingEquipment/rdf:type cim:EquivalentInjection }, -?p, ?p) AS ?c)
+            }
           }
-        GROUP BY $this ?termtype
+          UNION
+          {
+           
+            SELECT DISTINCT $this ?term ?c
+            WHERE {
+              ?tieTerm ^cim:TieFlow.Terminal/cim:TieFlow.ControlArea $this .
+              FILTER NOT EXISTS { ?tieTerm ^cim:SvPowerFlow.Terminal ?anyFlow }
+              ?tieTerm cim:Terminal.TopologicalNode ?tn .
+              ?tn entsoe:TopologicalNode.boundaryPoint true .
+              ?term cim:Terminal.TopologicalNode ?tn ;
+                    cim:Terminal.ConductingEquipment/rdf:type cim:EquivalentInjection ;
+                    ^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.p ?p .
+              BIND (-?p AS ?c)
+            }
+          }
+        }
+        GROUP BY $this
         }
         FILTER (ABS(?value-?sump) > COALESCE(?ptol, 50)) .
 			} """ .
@@ -564,7 +582,7 @@ l6com:RotatingMachine.q-GenReactivePowerInfeedDiffWSparql
 
 l6com:ControlArea.netInterchange-NetInterchange2Sparql
         rdf:type     sh:SPARQLConstraint;
-        sh:message   "Netted Area position severely not respected. for more than 200 MW. ControlArea.netInterchange= {?value}. Sum of the EquivalentInjections= {?sump}.";
+        sh:message   "Netted Area position severely not respected. for more than 200 MW. ControlArea.netInterchange= {?value}. Sum of the tie flows= {?sump}.";
         sh:prefixes  cim:;
         sh:select    """
 			SELECT  $this ?value ?sump
@@ -572,17 +590,35 @@ l6com:ControlArea.netInterchange-NetInterchange2Sparql
         $this cim:ControlArea.type cim:ControlAreaTypeKind.Interchange .
         $this cim:ControlArea.netInterchange ?value .
         {
-        SELECT $this (SUM(-?p) AS ?sump)
+        SELECT $this (SUM(?c) AS ?sump)
         WHERE {
-              ?term ^cim:TieFlow.Terminal/cim:TieFlow.ControlArea $this  .
-			  ?term cim:Terminal.TopologicalNode/entsoe:TopologicalNode.boundaryPoint true .
-			  ?term cim:Terminal.TopologicalNode ?tn.
-			  ?tn ^cim:Terminal.TopologicalNode ?terms.
-              ?terms cim:Terminal.ConductingEquipment/rdf:type cim:EquivalentInjection .
-              ?terms rdf:type ?termtype.
-              ?terms ^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.p ?p .
+          {
+          
+            SELECT DISTINCT $this ?term ?c
+            WHERE {
+              ?term ^cim:TieFlow.Terminal/cim:TieFlow.ControlArea $this .
+              ?term cim:Terminal.TopologicalNode/entsoe:TopologicalNode.boundaryPoint true .
+              ?term ^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.p ?p .
+              BIND (IF(EXISTS { ?term cim:Terminal.ConductingEquipment/rdf:type cim:EquivalentInjection }, -?p, ?p) AS ?c)
+            }
           }
-        GROUP BY $this ?termtype
+          UNION
+          {
+        
+            SELECT DISTINCT $this ?term ?c
+            WHERE {
+              ?tieTerm ^cim:TieFlow.Terminal/cim:TieFlow.ControlArea $this .
+              FILTER NOT EXISTS { ?tieTerm ^cim:SvPowerFlow.Terminal ?anyFlow }
+              ?tieTerm cim:Terminal.TopologicalNode ?tn .
+              ?tn entsoe:TopologicalNode.boundaryPoint true .
+              ?term cim:Terminal.TopologicalNode ?tn ;
+                    cim:Terminal.ConductingEquipment/rdf:type cim:EquivalentInjection ;
+                    ^cim:SvPowerFlow.Terminal/cim:SvPowerFlow.p ?p .
+              BIND (-?p AS ?c)
+            }
+          }
+        }
+        GROUP BY $this
         }
         FILTER (ABS(?value-?sump)>200) .
 			} """ .
