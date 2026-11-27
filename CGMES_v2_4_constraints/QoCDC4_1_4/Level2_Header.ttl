@@ -29,7 +29,7 @@ l2head:Model.profile-ProfileSpecification
 
 l2head:FileHeaderSparql
         rdf:type     sh:SPARQLConstraint;
-        sh:message   "Missing file header.(or multiple headers)  FullModel count: {?countfh}; DifferenceModel count: {?countdh}.";
+        sh:message   "The instance file does not have exactly one file header. FullModel count: {?countfh}; DifferenceModel count: {?countdh}. The rule expects one instance file as input; run on several files of a model at once, it counts the headers of all of them.";
         sh:prefixes  cim:;
         sh:select """
                 SELECT $this ?countfh ?countdh
@@ -51,7 +51,7 @@ l2head:FileHeaderSparql
             """ .
 
 l2head:FullModel  rdf:type  sh:NodeShape;
-        sh:description  "Each type of instance file shall have exactly one file header of type FullModel or DifferenceModel.";
+        sh:description  "Each type of instance file shall have exactly one file header of type FullModel or DifferenceModel. The input of this rule is one instance file: the rule counts every md:FullModel and dm:DifferenceModel of the data graph, so it shall be run per instance file (as the per-profile validation configurations EQ, SSH, TP and SV do) and not on the union of the files of an IGM or CGM.";
         sh:group        l2head:Level2-IGMCGMHeader;
         sh:name         "FileHeader";
         sh:order        1;
