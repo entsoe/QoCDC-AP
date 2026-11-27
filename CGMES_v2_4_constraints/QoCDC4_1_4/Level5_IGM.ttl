@@ -32,8 +32,22 @@ l5igm:Terminal-connection
                             [ sh:inversePath cim:Terminal.ConductingEquipment ]
                             cim:Terminal.ConnectivityNode
                         );
-        sh:minCount     2;
-        sh:severity     sh:Violation .
+        sh:severity     sh:Violation;
+        sh:sparql       l5igm:Terminal-connectionSparql .
+
+l5igm:Terminal-connectionSparql
+        rdf:type     sh:SPARQLConstraint;
+        sh:message   "A switch that has its terminals connected to the same cim:ConnectivityNode.";
+        sh:prefixes  cim:;
+        sh:select    """
+			SELECT DISTINCT $this ?value
+			WHERE {
+          ?terminal1 cim:Terminal.ConductingEquipment $this ;
+                     cim:Terminal.ConnectivityNode ?value .
+          ?terminal2 cim:Terminal.ConductingEquipment $this ;
+                     cim:Terminal.ConnectivityNode ?value .
+          FILTER (?terminal1 != ?terminal2) .
+			}""" .
 
 l5igm:SynchronousMachine-SMOperatingModeConsistencySparql
         rdf:type     sh:SPARQLConstraint;

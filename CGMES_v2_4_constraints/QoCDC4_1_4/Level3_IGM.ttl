@@ -1907,13 +1907,29 @@ l3igm:ControlArea-ControlAreaInstanceCount
         rdf:type        sh:PropertyShape;
         sh:description  "Exactly one cim: ControlArea instance per AC IGM with following attributes must be defined: - cim: ControlArea. type is cim: ControlAreaTypeKind. Interchange - an entsoe: IdentifiedObject. energyIdentCodeEic shall be one of the codes defined in the QoCDC Reference Data document in column “RegionEic”.";
         sh:group        l3igm:Level3-IGM;
-        sh:maxCount     1;
-        sh:message      "cim:ControlArea instance of type cim:ControlAreaTypeKind.Interchange is missing or does not have correct entsoe:IdentifiedObject.energyIdentCodeEic.";
-        sh:minCount     1;
+        sh:message      "The IGM does not have exactly one cim:ControlArea of type cim:ControlAreaTypeKind.Interchange. Count: {?value}.";
         sh:name         "ControlAreaInstance";
         sh:order        99;
         sh:path         [ sh:inversePath  rdf:type ];
-        sh:severity     sh:Violation .
+        sh:severity     sh:Violation;
+        sh:sparql       l3igm:ControlArea-ControlAreaInstanceCountSparql .
+
+l3igm:ControlArea-ControlAreaInstanceCountSparql
+        rdf:type     sh:SPARQLConstraint;
+        sh:message   "The IGM does not have exactly one cim:ControlArea of type cim:ControlAreaTypeKind.Interchange. Count: {?value}.";
+        sh:prefixes  cim:;
+        sh:select    """
+			SELECT $this ?value
+			WHERE {
+          {
+            SELECT (COUNT(DISTINCT ?area) AS ?value)
+            WHERE {
+              ?area rdf:type cim:ControlArea ;
+                    cim:ControlArea.type cim:ControlAreaTypeKind.Interchange .
+            }
+          }
+          FILTER (?value != 1) .
+			}""" .
 
 l3igm:VoltageLimit
         rdf:type        sh:NodeShape ;
@@ -2540,12 +2556,24 @@ l3igm:ControlArea-ControlAreaInstance
         rdf:type        sh:PropertyShape;
         sh:description  "Exactly one cim: ControlArea instance per AC IGM with following attributes must be defined: - cim: ControlArea. type is cim: ControlAreaTypeKind. Interchange - an entsoe: IdentifiedObject. energyIdentCodeEic shall be one of the codes defined in the QoCDC Reference Data document in column “RegionEic”.";
         sh:group        l3igm:Level3-IGM;
-        sh:in           ( "10Y1001C--00037Z" "10YDK-1--------W" "10YDK-2--------M" "10Y1001A1001A016" "10Y1001A1001A39I" "10Y1001A1001A49F" "10Y1001A1001A50U" "10Y1001A1001A51S" "10Y1001A1001A65H" "10Y1001C--00100H" "10YAL-KESH-----5" "10YAT-APG------L" "10YBA-JPCC-----D" "10YBE----------2" "10YCA-BULGARIA-R" "10YCH-SWISSGRIDZ" "10YCS-CG-TSO---S" "10YCS-SERBIATSOV" "10YCZ-CEPS-----N" "10YDE-ENBW-----N" "10YDE-EON------1" "10YDE-RWENET---I" "10YDE-VE-------2" "10YES-REE------0" "10YFI-1--------U" "10YFR-RTE------C" "10YGB----------A" "10YGR-HTSO-----Y" "10YHR-HEP------M" "10YHU-MAVIR----U" "10YIE-1001A00010" "10YIT-GRTN-----B" "10YLT-1001A0008Q" "10YLU-CEGEDEL-NQ" "10YLV-1001A00074" "10YMK-MEPSO----8" "10YNL----------L" "10YNO-0--------C" "10YPL-AREA-----S" "10YPT-REN------W" "10YRO-TEL------P" "10YSE-1--------K" "10YSI-ELES-----O" "10YSK-SEPS-----K" "10YTR-TEIAS----W" "10YUA-WEPS-----0" "10YMA-ONE------O" "10Y1001A1001A59C" "10Y1001A1001A91G" "10Y1001A1001A92E" "10Y1001A1001A94A" "10YEU-CONT-SYNC0" );
-        sh:message      "cim:ControlArea instance of type cim:ControlAreaTypeKind.Interchange is missing or does not have correct entsoe:IdentifiedObject.energyIdentCodeEic.";
+        sh:message      "cim:ControlArea of type cim:ControlAreaTypeKind.Interchange does not have a correct entsoe:IdentifiedObject.energyIdentCodeEic.";
         sh:name         "ControlAreaInstance";
         sh:order        100;
         sh:path         entsoe:IdentifiedObject.energyIdentCodeEic;
-        sh:severity     sh:Violation .
+        sh:severity     sh:Violation;
+        sh:sparql       l3igm:ControlArea-ControlAreaInstanceSparql .
+
+l3igm:ControlArea-ControlAreaInstanceSparql
+        rdf:type     sh:SPARQLConstraint;
+        sh:message   "cim:ControlArea of type cim:ControlAreaTypeKind.Interchange does not have a correct entsoe:IdentifiedObject.energyIdentCodeEic.";
+        sh:prefixes  cim:;
+        sh:select    """
+			SELECT $this ?value
+			WHERE {
+          $this cim:ControlArea.type cim:ControlAreaTypeKind.Interchange .
+          OPTIONAL { $this $PATH ?value } .
+          FILTER (!BOUND(?value) || STR(?value) NOT IN ("10Y1001C--00037Z", "10YDK-1--------W", "10YDK-2--------M", "10Y1001A1001A016", "10Y1001A1001A39I", "10Y1001A1001A49F", "10Y1001A1001A50U", "10Y1001A1001A51S", "10Y1001A1001A65H", "10Y1001C--00100H", "10YAL-KESH-----5", "10YAT-APG------L", "10YBA-JPCC-----D", "10YBE----------2", "10YCA-BULGARIA-R", "10YCH-SWISSGRIDZ", "10YCS-CG-TSO---S", "10YCS-SERBIATSOV", "10YCZ-CEPS-----N", "10YDE-ENBW-----N", "10YDE-EON------1", "10YDE-RWENET---I", "10YDE-VE-------2", "10YES-REE------0", "10YFI-1--------U", "10YFR-RTE------C", "10YGB----------A", "10YGR-HTSO-----Y", "10YHR-HEP------M", "10YHU-MAVIR----U", "10YIE-1001A00010", "10YIT-GRTN-----B", "10YLT-1001A0008Q", "10YLU-CEGEDEL-NQ", "10YLV-1001A00074", "10YMK-MEPSO----8", "10YNL----------L", "10YNO-0--------C", "10YPL-AREA-----S", "10YPT-REN------W", "10YRO-TEL------P", "10YSE-1--------K", "10YSI-ELES-----O", "10YSK-SEPS-----K", "10YTR-TEIAS----W", "10YUA-WEPS-----0", "10YMA-ONE------O", "10Y1001A1001A59C", "10Y1001A1001A91G", "10Y1001A1001A92E", "10Y1001A1001A94A", "10YEU-CONT-SYNC0")) .
+			}""" .
 
 l3igm:PhaseTapChangerSymmetrical
         rdf:type        sh:NodeShape;

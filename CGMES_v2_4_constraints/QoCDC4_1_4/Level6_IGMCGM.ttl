@@ -306,7 +306,7 @@ l6com:ShuntCompensator.sections-valueSparql
         $this cim:RegulatingCondEq.RegulatingControl ?contr.
         ?contr cim:RegulatingControl.discrete true . 
         ?contr cim:RegulatingControl.enabled true .
-        FILTER (CONTAINS(str(?value), ".") && !REGEX(STRAFTER(str(?value), "."), "^[0]$", "i") ) .
+        FILTER (CONTAINS(str(?value), ".") && !REGEX(STRAFTER(str(?value), "."), "^0+$") ) .
 			}""" .
 
 l6com:ExternalNetworkInjection.p-ENIActivePowerInfeedDiffWSparql
@@ -334,7 +334,7 @@ l6com:TapChanger.step-valueTypeSparql
         $this $PATH ?value .
         $this cim:TapChanger.TapChangerControl/cim:RegulatingControl.discrete true.
 		$this cim:TapChanger.TapChangerControl/cim:RegulatingControl.enabled true.
-        FILTER (CONTAINS(str(?value), ".") && !REGEX(STRAFTER(str(?value), "."), "^[0]$", "i")) .
+        FILTER (CONTAINS(str(?value), ".") && !REGEX(STRAFTER(str(?value), "."), "^0+$")) .
 			}""" .
 
 l6com:RotatingMachine.q-GenReactivePowerInfeedDiffW
@@ -509,7 +509,7 @@ l6com:SvTapStep.position-valueSparql
         $this cim:SvTapStep.TapChanger/cim:TapChanger.TapChangerControl ?contr .
         ?contr cim:RegulatingControl.enabled true .
         ?contr cim:RegulatingControl.discrete true . 
-        FILTER (CONTAINS(str(?value), ".") && !REGEX(STRAFTER(str(?value), "."), "^[0]$", "i")) .
+        FILTER (CONTAINS(str(?value), ".") && !REGEX(STRAFTER(str(?value), "."), "^0+$")) .
 			}""" .
 
 l6com:SvVoltage.v-limitsSparql
@@ -683,7 +683,7 @@ l6com:SvShuntCompensatorSections.sections-valueSparql
         $this cim:SvShuntCompensatorSections.ShuntCompensator/cim:RegulatingCondEq.RegulatingControl ?contr .
         ?contr cim:RegulatingControl.enabled true .
         ?contr cim:RegulatingControl.discrete true . 
-        FILTER (CONTAINS(str(?value), ".") && !REGEX(STRAFTER(str(?value), "."), "^[0]$", "i") ) .
+        FILTER (CONTAINS(str(?value), ".") && !REGEX(STRAFTER(str(?value), "."), "^0+$") ) .
 			}""" .
 
 l6com:EnergySource.activePower-consumerSparql
